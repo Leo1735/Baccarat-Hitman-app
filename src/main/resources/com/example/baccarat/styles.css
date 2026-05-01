@@ -1,0 +1,376 @@
+/* =======================================================
+   ROOT
+======================================================= */
+
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #121218;
+    -fx-text-fill: #e6e6e6;
+}
+
+
+/* =======================================================
+   TOP BAR
+======================================================= */
+
+#topBar {
+    -fx-background-color: rgba(255,255,255,0.04);
+    -fx-padding: 6;
+}
+
+#topBar .button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d0d0d0;
+    -fx-font-size: 14px;
+}
+
+#topBar .button:hover {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-background-radius: 6;
+}
+
+
+/* =======================================================
+   TAB PANE
+======================================================= */
+
+.tab-pane {
+    -fx-background-color: transparent;
+    -fx-tab-min-height: 36;
+    -fx-tab-max-height: 36;
+}
+
+/* Remove dropdown arrow */
+.tab-pane .control-buttons-tab {
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+}
+
+/* Equal width tabs (600px window assumed) */
+.tab-pane .tab-header-area .headers-region .tab {
+    -fx-pref-width: 130;
+    -fx-max-width: 300;
+    -fx-background-color: transparent;
+}
+
+/* Remove default header background */
+.tab-header-background {
+    -fx-background-color: transparent;
+}
+/* Base tab label color */
+.tab-label {
+    -fx-text-fill: #8f8fa3;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+.tab#player:selected {
+    -fx-background-color: #244dff;
+}
+
+.tab#player:selected .tab-label {
+    -fx-text-fill: white;
+}
+
+/* Banker tab selected = red background */
+.tab#banker:selected {
+    -fx-background-color: #d23a3a;
+}
+
+.tab#banker:selected .tab-label {
+    -fx-text-fill: white;
+}
+
+/* Remove any default focus border */
+.tab:selected {
+    -fx-border-color: transparent;
+}
+.tab-pane:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.tab-pane .tab:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.tab-pane .tab:selected {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* =======================================================
+   CARD / STATS PANES
+======================================================= */
+
+.stats-pane {
+    -fx-background-color: #181822;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-color: rgba(255,255,255,0.05);
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+.stats-title {
+    -fx-text-fill: #9b9bb0;
+    -fx-font-size: 12px;
+}
+
+.stats-value {
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+/* Output box */
+.stats-value1 {
+    -fx-background-color: #20202a;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: rgba(255,255,255,0.06);
+    -fx-padding: 14;
+    -fx-text-fill: #eaeaea;
+    -fx-alignment: center;
+}
+
+
+/* =======================================================
+   SEPARATORS (Thin + Clean)
+======================================================= */
+
+.stats-separator,
+.stats-separator-player,
+.stats-separator-banker {
+    -fx-background-color: #2a2a35;
+
+}
+
+
+/* =======================================================
+   PLAYER / BANKER BUTTONS
+======================================================= */
+
+.stats-player {
+    -fx-background-color: #244dff;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-font-size: 16px;
+}
+
+.stats-player:hover {
+    -fx-background-color: #2f5fff;
+}
+
+.stats-banker {
+    -fx-background-color: #d23a3a;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-font-size: 16px;
+}
+
+.stats-banker:hover {
+    -fx-background-color: #e54848;
+}
+
+
+/* =======================================================
+   UNDO BUTTON (LARGER)
+======================================================= */
+
+.undo {
+    -fx-background-color: #2a2a36;
+    -fx-text-fill: #dcdcdc;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255,255,255,0.08);
+    -fx-border-radius: 12;
+    -fx-pref-width: 45;
+    -fx-pref-height: 45;
+    -fx-font-size: 16px;
+}
+
+.undo:hover {
+    -fx-background-color: #343444;
+}
+
+
+/* =======================================================
+   TEXT FIELDS
+======================================================= */
+
+.text-field {
+    -fx-control-inner-background: #1f1f28;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: rgba(255,255,255,0.08);
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: white;
+}
+
+
+/* =======================================================
+   CHOICE BOX
+======================================================= */
+
+.choice-box {
+    -fx-background-color: #444;
+    -fx-mark-color: white;
+}
+
+.choice-box .label {
+    -fx-text-fill: white;
+}
+
+.choice-box .context-menu {
+    -fx-background-color: #444;
+}
+
+.choice-box .menu-item:focused {
+    -fx-background-color: #666;
+}
+
+.choice-box .menu-item .label {
+    -fx-text-fill: white;
+}
+
+/* =======================================================
+   OVERLAYS
+======================================================= */
+
+#settingsPane,
+#statsPane {
+    -fx-background-color: #1b1b24;
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(255,255,255,0.05);
+    -fx-border-radius: 16;
+}
+
+#settingsPane .button,
+#statsPane .button {
+    -fx-background-color: #2a2a36;
+    -fx-text-fill: #dddddd;
+    -fx-background-radius: 10;
+}
+
+#settingsPane .button:hover,
+#statsPane .button:hover {
+    -fx-background-color: #343444;
+}
+#compoundingOverlay {
+    -fx-background-color: #1b1b24;
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(255,255,255,0.05);
+    -fx-border-radius: 16;
+}
+
+/* =======================================================
+   EXIT OVERLAY
+======================================================= */
+
+#exitOverlay {
+    -fx-background-color: rgba(0,0,0,0.55);
+}
+
+#exitOverlay VBox {
+    -fx-background-color: #1c1c26;
+    -fx-background-radius: 16;
+    -fx-padding: 25;
+}
+
+
+/* =======================================================
+   LOADING OVERLAY
+======================================================= */
+
+#loadingOverlay {
+    -fx-background-color: rgba(0,0,0,0.45);
+}
+
+
+/* =======================================================
+   PIE CHART CLEANUP
+======================================================= */
+
+.chart-legend {
+    -fx-background-color: transparent;
+}
+
+.chart-pie-label {
+    -fx-fill: transparent;
+}
+
+.chart-content {
+    -fx-background-color: transparent;
+}
+/* =======================================================
+   COMPOUNDING GRID
+======================================================= */
+/* ===============================
+   COMPOUNDING PANEL
+================================ */
+
+#compoundingOverlay {
+
+    -fx-background-color: #181822;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-color: rgba(255,255,255,0.05);
+    -fx-border-width: 1;
+
+    -fx-padding: 16;
+}
+/* ===============================
+    COMPOUNDING TABLE (CARD STYLE)
+ ================================ */
+
+ #compoundingOverlay .table-view {
+     -fx-background-color: #20202a; /* slightly lighter than panel */
+     -fx-control-inner-background: #20202a;
+
+     -fx-background-radius: 12;
+     -fx-border-radius: 12;
+
+     -fx-border-color: rgba(255,255,255,0.05);
+     -fx-padding: 10;
+ }
+
+ /* Header */
+ #compoundingOverlay .column-header-background {
+     -fx-background-color: transparent;
+ }
+
+ #compoundingOverlay .column-header {
+     -fx-background-color: transparent;
+ }
+
+ /* Header text */
+ #compoundingOverlay .column-header .label {
+     -fx-text-fill: #9b9bb0;
+     -fx-font-weight: bold;
+     -fx-font-size: 12px;
+ }
+
+ /* Rows */
+ #compoundingOverlay .table-row-cell {
+     -fx-background-color: transparent;
+     -fx-border-color: transparent transparent rgba(255,255,255,0.15) transparent; /* white divider */
+     -fx-border-width: 0 0 1 0;
+ }
+
+ /* Subtle hover */
+ #compoundingOverlay .table-row-cell:hover {
+     -fx-background-color: #2a2a36;
+ }
+
+
+
+ /* Cells */
+ #compoundingOverlay .table-cell {
+     -fx-text-fill: white;
+     -fx-alignment: CENTER;
+     -fx-padding: 8;
+     -fx-font-size: 12;
+ }

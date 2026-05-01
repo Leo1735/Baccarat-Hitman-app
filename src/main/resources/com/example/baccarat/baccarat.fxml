@@ -1,0 +1,691 @@
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.Rectangle?>
+
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.example.baccarat.HelloController"
+           prefWidth="600" prefHeight="200">
+
+    <!-- Main BorderPane -->
+    <BorderPane fx:id="mainPane">
+
+        <!-- Top Bar -->
+        <top>
+            <HBox fx:id="topBar" spacing="10"
+                  style="-fx-background-color: rgba(54,54,85,0.22); -fx-padding: 6; -fx-alignment: center;"
+                  prefHeight="35" maxHeight="35">
+                <Button text="🔁" onAction="#openCompoundingPlan"
+                style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                <VBox>
+                <Label text="Hit Man"
+                       style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"
+                       HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblCurrentPlan" text="500-1" style="-fx-font-size: 14px; -fx-text-fill: white;"/>
+                </VBox>
+                <Button text="⚙" onAction="#toggleSettings"
+                        style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold"/>
+                <Button text="\%" onAction="#toggleStats"
+                        style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                <Button text="X" onAction="#showExitOverlay"
+                        style="-fx-background-color: #b33; -fx-text-fill: white; -fx-font-weight: bold;"/>
+            </HBox>
+
+        </top>
+
+        <!-- Tabs -->
+        <center>
+            <VBox style="-fx-padding: 10;" VBox.vgrow="ALWAYS" alignment="CENTER">
+                <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE"
+                         style="-fx-border-color: #191929; -fx-border-radius: 5; -fx-background-radius: 5;"
+                         VBox.vgrow="ALWAYS">
+                    <tabs>
+
+                        <!-- PLAYER TAB -->
+                        <Tab text="Player" closable="false" fx:id="player">
+                            <StackPane alignment="TOP_CENTER">
+                                <VBox spacing="10" alignment="TOP_CENTER" styleClass="tab-content">
+
+                                    <!-- Stats Box 1 -->
+                                    <StackPane styleClass="stats-pane">
+                                        <GridPane fx:id="playerStatsGrid" hgap="30" vgap="6" alignment="CENTER">
+                                            <columnConstraints>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                            </columnConstraints>
+                                            <rowConstraints>
+                                                <RowConstraints valignment="CENTER"/>
+                                                <RowConstraints valignment="CENTER"/>
+                                            </rowConstraints>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Next Bet" styleClass="stats-title"/>
+                                                <Label fx:id="lblPlayerNextBet" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Stage" styleClass="stats-title"/>
+                                                <HBox>
+
+                                                    <Label fx:id="lblPlayerStageDetail" styleClass="stats-value"/>
+                                                </HBox>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Stake:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblPlayerUnit" styleClass="stats-value"/>
+                                            </VBox>
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="To Recover" styleClass="stats-title"/>
+                                                <StackPane>
+                                                    <Label fx:id="lblPlayerRecovered" styleClass="stats-value"/>
+                                                    <Button fx:id="btnRecoveryPit"
+                                                            text="RECOVER"
+                                                            visible="false"
+                                                            onAction="#openRecoveryPit"
+                                                            style="-fx-background-color: #ff4444; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                                                </StackPane>
+                                            </VBox>
+
+                                        </GridPane>
+
+                                        <!-- Cross overlays -->
+                                        <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-player"
+                                                   maxHeight="${playerStatsGrid.height}"/>
+                                        <Separator orientation="HORIZONTAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-player"
+                                                   maxWidth="${playerStatsGrid.width}"/>
+                                    </StackPane>
+
+                                    <!-- Stats Box 2 -->
+                                    <StackPane styleClass="stats-pane">
+                                        <GridPane hgap="30" vgap="6" alignment="CENTER">
+                                            <columnConstraints>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                            </columnConstraints>
+                                            <rowConstraints>
+                                                <RowConstraints valignment="CENTER"/>
+                                                <RowConstraints valignment="CENTER"/>
+                                            </rowConstraints>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Profit:" styleClass="stats-title"/>
+                                                <Label fx:id="lblPlayerProfit" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Total Profit:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblTotalProfit"  styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Bank: " style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblPlayerBank" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Total Bank:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblTotalBank"   styleClass="stats-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-player"
+                                                   maxHeight="Infinity" fx:id="sepPlayerProfit"/>
+                                        <Separator orientation="HORIZONTAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-player"
+                                                   maxWidth="Infinity" fx:id="sepPlayerBank"/>
+                                    </StackPane>
+
+                                        <StackPane styleClass="stats-pane" alignment="CENTER" prefWidth="600">
+                                            <GridPane fx:id="pointsStatsGrid" hgap="30" vgap="6" alignment="CENTER">
+                                                <columnConstraints>
+                                                    <ColumnConstraints halignment="CENTER"/>
+                                                    <ColumnConstraints halignment="CENTER"/>
+                                                </columnConstraints>
+                                                <rowConstraints>
+                                                    <RowConstraints valignment="CENTER"/>
+                                                    <RowConstraints valignment="CENTER"/>
+                                                </rowConstraints>
+
+                                                <!-- Row 1 -->
+                                                <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                    <Label text="Point Value" styleClass="stats-title"/>
+                                                    <Label fx:id="lblPointValue" styleClass="stats-value"/>
+                                                </VBox>
+
+                                                <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                    <HBox>
+                                                    <Label text="Points Profit" styleClass="stats-title"/>
+                                                    <Label fx:id="lblPointsBank" styleClass="stats-title"/>
+                                                    </HBox>
+                                                    <Label fx:id="lblPointsProfit" styleClass="stats-value"/>
+                                                </VBox>
+
+                                                <!-- Row 2 -->
+                                                <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                    <Label text="Stop Loss"  fx:id="lblStopLossValue" styleClass="stats-title"/>
+                                                    <Label fx:id="lblStopLoss" styleClass="stats-value"/>
+                                                </VBox>
+
+                                                <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                    <Label text="Stop Profit" fx:id="lblStopProfitValue" styleClass="stats-title"/>
+                                                    <Label fx:id="lblStopProfit" styleClass="stats-value"/>
+                                                </VBox>
+                                            </GridPane>
+
+                                            <!-- Centered separators for visual cross -->
+                                            <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
+                                                       styleClass="stats-separator"
+                                                       maxHeight="Infinity"/>
+                                            <Separator orientation="HORIZONTAL" StackPane.alignment="CENTER"
+                                                       styleClass="stats-separator"
+                                                       maxWidth="Infinity"/>
+                                        </StackPane>
+
+                                    <!-- Output + Buttons -->
+                                    <HBox spacing="5" >
+                                        <Button fx:id="txtPlayerBetAmount" onAction="#handlePlayerWin" prefWidth="160" prefHeight="75" styleClass="stats-player" />
+                                        <Button text="BANKER" onAction="#handlePlayerLoss" prefWidth="160" prefHeight="75" styleClass="stats-banker"/>
+                                    </HBox>
+                                    <HBox spacing="10" alignment="CENTER">
+                                        <Button text="↻" onAction="#handlePlayerUndo" styleClass="undo"/>
+                                        <Label fx:id="txtPlayerOutput" styleClass="stats-value1" prefWidth="270" prefHeight="100"/>
+
+
+
+                                    </HBox>
+
+                                </VBox>
+                            </StackPane>
+                        </Tab>
+
+                        <!-- BANKER TAB -->
+                        <Tab text="Banker" closable="false" fx:id="banker">
+                            <StackPane alignment="TOP_CENTER">
+                                <VBox spacing="10" alignment="TOP_CENTER" styleClass="tab-content">
+
+                                    <!-- Stats Box 1 -->
+                                    <StackPane styleClass="stats-pane">
+                                        <GridPane fx:id="bankerStatsGrid" hgap="30" vgap="6" alignment="CENTER">
+                                            <columnConstraints>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                            </columnConstraints>
+                                            <rowConstraints>
+                                                <RowConstraints valignment="CENTER"/>
+                                                <RowConstraints valignment="CENTER"/>
+                                            </rowConstraints>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Stage" styleClass="stats-title"/>
+                                                <HBox>
+                                                    <Label fx:id="lblBankerStage" styleClass="stats-value"/>
+
+                                                </HBox>
+
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Next Bet" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerNextBet" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="To Recover" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerRecovered" styleClass="stats-value"/>
+                                            </VBox>
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Stake:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerUnit" styleClass="stats-value"/>
+                                            </VBox>
+
+                                        </GridPane>
+
+                                        <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-banker"
+                                                   maxHeight="Infinity"/>
+                                        <Separator orientation="HORIZONTAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-banker"
+                                                   maxWidth="Infinity"/>
+                                    </StackPane>
+
+                                    <!-- Stats Box 2 -->
+                                    <StackPane styleClass="stats-pane">
+                                        <GridPane hgap="30" vgap="6" alignment="CENTER">
+                                            <columnConstraints>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                            </columnConstraints>
+                                            <rowConstraints>
+                                                <RowConstraints valignment="CENTER"/>
+                                                <RowConstraints valignment="CENTER"/>
+                                            </rowConstraints>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Total Profit:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblTotalProfitBank"  styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Profit:" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerProfit" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Total Bank:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblTotalBankBank"  styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Bank: " style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerBank" styleClass="stats-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-banker"
+                                                   maxHeight="Infinity" fx:id="sepBankerProfit"/>
+                                        <Separator orientation="HORIZONTAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator-banker"
+                                                   maxWidth="Infinity" fx:id="sepBankerBank"/>
+                                    </StackPane>
+                                    <StackPane styleClass="stats-pane" alignment="CENTER" prefWidth="600">
+                                        <GridPane fx:id="bankerPointsStatsGrid" hgap="30" vgap="6" alignment="CENTER">
+                                            <columnConstraints>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                                <ColumnConstraints halignment="CENTER"/>
+                                            </columnConstraints>
+                                            <rowConstraints>
+                                                <RowConstraints valignment="CENTER"/>
+                                                <RowConstraints valignment="CENTER"/>
+                                            </rowConstraints>
+
+                                            <!-- Row 1 -->
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Point Value" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerPointValue" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <HBox>
+                                                    <Label text="Points Profit" styleClass="stats-title"/>
+                                                    <Label fx:id="lblBankerPointsBank" styleClass="stats-title"/>
+                                                </HBox>
+                                                <Label fx:id="lblBankerPointsProfit" styleClass="stats-value"/>
+
+                                            </VBox>
+
+
+                                            <!-- Row 2 -->
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
+                                                <Label text="Stop Loss" fx:id="lblBankerStopLossValue" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerStopLoss" styleClass="stats-value"/>
+                                            </VBox>
+
+                                            <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
+                                                <Label text="Stop Profit" fx:id="lblBankerStopProfitValue" styleClass="stats-title"/>
+                                                <Label fx:id="lblBankerStopProfit" styleClass="stats-value"/>
+                                            </VBox>
+                                        </GridPane>
+
+                                        <!-- Centered separators for visual cross -->
+                                        <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator"
+                                                   maxHeight="Infinity"/>
+                                        <Separator StackPane.alignment="CENTER"
+                                                   styleClass="stats-separator"
+                                                   maxWidth="Infinity"/>
+                                    </StackPane>
+
+                                    <!-- Output + Buttons -->
+                                    <HBox spacing="5">
+                                    <Button text="Player" onAction="#handleBankerLoss" prefWidth="170"  prefHeight="75" styleClass="stats-player"/>
+                                    <Button fx:id="txtBankerBetAmount"  onAction="#handleBankerWin" prefWidth="170"  prefHeight="75" styleClass="stats-banker"/>
+                                    </HBox>
+                                    <HBox spacing="5" alignment="CENTER">
+
+                                        <Button text="↻" onAction="#handleBankerUndo" styleClass="undo"/>
+                                        <Label  fx:id="txtBankerOutput" styleClass="stats-value1" prefWidth="270" prefHeight="100"/>
+
+                                    </HBox>
+
+                                </VBox>
+                            </StackPane>
+                        </Tab>
+
+                    </tabs>
+                </TabPane>
+            </VBox>
+        </center>
+
+        <!-- Bottom -->
+        <bottom>
+
+        </bottom>
+
+
+    </BorderPane>
+
+
+    <VBox fx:id="settingsPane"
+          alignment="TOP_CENTER"
+          style="-fx-background-color: rgba(60,60,60,0.95); -fx-padding: 15; -fx-background-radius: 8;"
+          spacing="10"
+          maxWidth="250"
+          visible="false"
+          translateY="45"
+          StackPane.alignment="CENTER">
+
+        <!-- Header -->
+        <HBox alignment="CENTER" spacing="10">
+            <Label text="Settings"
+                   style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <Button text="X"
+                    onAction="#toggleSettings"
+                    style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+        </HBox>
+
+        <!-- Plan ChoiceBox -->
+        <ChoiceBox fx:id="planChoice"
+                   style="-fx-background-color: #444; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
+                   maxWidth="Infinity" />
+
+        <!-- Text Fields -->
+        <TextField fx:id="txtBaseUnit"
+                   promptText="Stake"
+                   style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
+                   maxWidth="Infinity"/>
+
+        <TextField fx:id="txtBank"
+                   promptText="Bank"
+                   style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
+                   maxWidth="Infinity"/>
+
+        <TextField fx:id="txtPointValue"
+                   promptText="Point Value"
+                   style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
+                   maxWidth="Infinity" />
+
+        <TextField fx:id="txtStopLoss"
+                   promptText="Stop Loss"
+                   style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
+                   maxWidth="Infinity" />
+
+        <TextField fx:id="txtStopProfit"
+                   promptText="Stop Profit"
+                   style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
+                   maxWidth="Infinity" />
+
+        <!-- Buttons -->
+        <Button text="Reset"
+                onAction="#handleResetBoth"
+                style="-fx-background-color: #666; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5;"
+                maxWidth="Infinity"/>
+
+        <Button fx:id="btnSaveApp"
+                text="Save"
+                onAction="#handleSaveSettings"
+                style="-fx-background-color: #CCCCCC; -fx-text-fill: black; -fx-font-weight: bold; -fx-border-radius: 5;"
+                maxWidth="Infinity"/>
+    </VBox>
+
+    <VBox fx:id="loadingOverlay" alignment="CENTER" spacing="10" visible="false"
+          style="-fx-background-color: rgba(0,0,0,0.5);">
+        <ProgressIndicator />
+        <Label  style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+    </VBox>
+    <VBox fx:id="statsPane"
+          alignment="TOP_CENTER"
+          style="-fx-background-color: rgba(40,40,60,0.95); -fx-padding: 15; -fx-background-radius: 8;"
+          spacing="10"
+          maxWidth="250"
+          visible="false"
+          translateY="45"
+          StackPane.alignment="CENTER">
+
+        <Label text="Statistics"
+               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+
+        <Button text="X"
+                onAction="#toggleStats"
+                style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px;"
+                maxWidth="Infinity"/>
+
+        <!-- 1st Bet Win Rate -->
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="1st Bet Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblFirstBetTotal" text="0%" style="-fx-text-fill: white;" />
+            <Label fx:id="lblFirstBetPlayer" text="0%" style="-fx-text-fill: #007bff;" />
+            <Label fx:id="lblFirstBetBanker" text="0%" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+        <!-- 2nd Bet Win Rate -->
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="2nd Bet Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblSecondBetTotal" text="0%" style="-fx-text-fill: white;" />
+            <Label fx:id="lblSecondBetPlayer" text="0%" style="-fx-text-fill: #007bff;" />
+            <Label fx:id="lblSecondBetBanker" text="0%" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+        <!-- Stage 1 Win Rate -->
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Stage 1 Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblStage1Total" text="0%" style="-fx-text-fill: white;" />
+            <Label fx:id="lblStage1Player" text="0%" style="-fx-text-fill: #007bff;" />
+            <Label fx:id="lblStage1Banker" text="0%" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+        <!-- Stage 2 Win Rate -->
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Stage 2 Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblStage2Total" text="0%" style="-fx-text-fill: white;" />
+            <Label fx:id="lblStage2Player" text="0%" style="-fx-text-fill: #007bff;" />
+            <Label fx:id="lblStage2Banker" text="0%" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+        <!-- Stage 3 Win Rate -->
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Stage 3 Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblStage3Total" text="0%" style="-fx-text-fill: white;" />
+            <Label fx:id="lblStage3Player" text="0%" style="-fx-text-fill: #007bff;" />
+            <Label fx:id="lblStage3Banker" text="0%" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+
+
+
+    <VBox spacing="8">
+        <!-- Streaks -->
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Win Streak:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label text="   " style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblWinStreakTotal" text="0" style="-fx-text-fill: white;" />
+            <Label text="     " style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblWinStreakPlayer" text="0" style="-fx-text-fill: #007bff;" />
+            <Label text="     " style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblWinStreakBanker" text="0" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+        <HBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Loss Streak:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label text="   " style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblLossStreakTotal" text="0" style="-fx-text-fill: white;" />
+            <Label text="     " style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblLossStreakPlayer" text="0" style="-fx-text-fill: #007bff;" />
+            <Label text="     " style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <Label fx:id="lblLossStreakBanker" text="0" style="-fx-text-fill: #e53935;" />
+        </HBox>
+
+    </VBox>
+
+
+        <VBox alignment="CENTER" spacing="5">
+
+            <!-- Titles above each chart -->
+            <HBox alignment="CENTER" spacing="30" >
+                <Label text="  Total" style="-fx-text-fill: #7a7a7a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                <Label text=" Player" style="-fx-text-fill: #7a7a7a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                <Label text="Banker" style="-fx-text-fill: #7a7a7a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+            </HBox>
+
+            <!-- Thin white line -->
+            <Rectangle height="1" fill="#555" width="240" />
+
+            <!-- Pie charts -->
+            <HBox alignment="CENTER" prefHeight="60" maxHeight="60" spacing="13" translateY="10" >
+                <!-- Total Pie -->
+                <StackPane prefWidth="60" prefHeight="60" maxWidth="60" maxHeight="60" minWidth="60" minHeight="60">
+                    <PieChart fx:id="pieChart"
+                              labelsVisible="false" legendVisible="false" startAngle="90"
+                              prefWidth="50" prefHeight="50" scaleX="0.60" scaleY="0.60"/>
+                    <Circle radius="33" fill="#222"/>
+                    <VBox alignment="CENTER" spacing="1">
+                        <Label fx:id="lblWinPct" text="0%" style="-fx-text-fill: green; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <Label fx:id="lblLossPct" text="0%" style="-fx-text-fill: red; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                    </VBox>
+                </StackPane>
+                <!-- Player Pie -->
+                <StackPane prefWidth="60" prefHeight="60" maxWidth="60" maxHeight="60" minWidth="60" minHeight="60">
+                    <PieChart fx:id="pieChartPlayer"
+                              labelsVisible="false" legendVisible="false" startAngle="90"
+                              prefWidth="25" prefHeight="25" scaleX="0.60" scaleY="0.60"/>
+                    <Circle radius="33" fill="#222"/>
+                    <VBox alignment="CENTER" spacing="1">
+                        <Label fx:id="lblPlayerWinPct" text="0%" style="-fx-text-fill: green; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <Label fx:id="lblPlayerLossPct" text="0%" style="-fx-text-fill: red; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                    </VBox>
+                </StackPane>
+
+                <!-- Banker Pie -->
+                <StackPane prefWidth="60" prefHeight="60" maxWidth="60" maxHeight="60" minWidth="60" minHeight="60">
+                    <PieChart fx:id="pieChartBanker"
+                              labelsVisible="false" legendVisible="false" startAngle="90"
+                              prefWidth="42" prefHeight="42" scaleX="0.60" scaleY="0.60"/>
+                    <Circle radius="33" fill="#222"/>
+                    <VBox alignment="CENTER" spacing="1">
+                        <Label fx:id="lblBankerWinPct" text="0%" style="-fx-text-fill: green; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <Label fx:id="lblBankerLossPct" text="0%" style="-fx-text-fill: red; -fx-font-size: 16px; -fx-font-weight: bold;"/>
+                    </VBox>
+                </StackPane>
+
+
+
+            </HBox>
+        </VBox>
+    </VBox>
+    <VBox fx:id="exitOverlay" alignment="CENTER" spacing="15" visible="false"
+          style="-fx-background-color: rgba(0,0,0,0.6);">
+
+        <VBox spacing="15" alignment="CENTER"
+              style="-fx-background-color: #222; -fx-padding: 25; -fx-background-radius: 10;">
+            <Label text="Save this baccarat session?"
+                   style="-fx-text-fill: white; -fx-font-size: 18px;"/>
+
+            <VBox spacing="20" alignment="CENTER">
+                <Button fx:id="exitSaveBtn" text="Yes" style="-fx-padding: 8 20;"/>
+                <Button fx:id="exitNoSaveBtn" text="No" style="-fx-padding: 8 20;"/>
+                <Button fx:id="exitCancelBtn" text="Cancel" style="-fx-padding: 8 20;"/>
+            </VBox>
+        </VBox>
+
+    </VBox>
+    <VBox fx:id="recoveryPitOverlay"
+          visible="false"
+          spacing="10"
+          alignment="TOP_CENTER"
+          fillWidth="true"
+
+          maxWidth="Infinity"
+          maxHeight="Infinity"
+
+          StackPane.alignment="TOP_LEFT"
+
+          style="-fx-background-color: #181822;">
+        <HBox alignment="CENTER_LEFT"
+          prefHeight="35"
+          maxWidth="Infinity"
+          HBox.hgrow="ALWAYS"
+          style="-fx-background-color: rgba(255,255,255,0.04); -fx-padding: 6;">
+            <Label text="Recovery Pit"
+                   style="-fx-font-size:24px; -fx-text-fill:white;"/>
+            <Button text="X"
+                    onAction="#openRecoveryPit"
+                    style="-fx-background-color:#444; -fx-text-fill:white;"/>
+        </HBox>
+        <GridPane hgap="10" vgap="10" alignment="CENTER">
+
+                <Label text="1" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <Label text="2" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                <Label text="3" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+
+                <Label text="4" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <Label text="5" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                <Label text="6" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+
+                <Label text="7" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <Label text="8" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                <Label text="9" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+
+        </GridPane>
+
+
+
+    </VBox>
+
+    <VBox fx:id="compoundingOverlay"
+          visible="false"
+          spacing="10"
+          alignment="TOP_CENTER"
+          fillWidth="true"
+
+          maxWidth="Infinity"
+          maxHeight="Infinity"
+
+          StackPane.alignment="TOP_LEFT"
+
+          style="-fx-background-color: #181822;">
+
+        <HBox alignment="CENTER_LEFT"
+               prefHeight="35"
+               maxWidth="Infinity"
+               HBox.hgrow="ALWAYS"
+               style="-fx-background-color: rgba(255,255,255,0.04); -fx-padding: 6;">
+
+            <Label text="Hit Man Compounding"
+                   style="-fx-text-fill:white; -fx-font-size:18px; -fx-font-weight: bold;"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button text="X"
+                    onAction="#openCompoundingPlan"
+                    style="-fx-background-color:#444; -fx-text-fill:white;"/>
+        </HBox>
+        <HBox spacing="10">
+            <VBox>
+                <Label text=" Goal:" style="-fx-text-fill:white;"/>
+                <TextField fx:id="txtGoal" promptText="Goal" prefWidth="50"/>
+            </VBox>
+
+            <Label fx:id="lblStartBalance" prefWidth="70"/>
+            <Label fx:id="lblCurrentBalance" prefWidth="70"/>
+            <Label fx:id="lblFullTotalProfit" prefWidth="70"/>
+        </HBox>
+        <TableView fx:id="compoundingTable">
+            <columns>
+                <TableColumn fx:id="colDay" text="Session" prefWidth="60"/>
+                <TableColumn fx:id="colOpening" text="Opening" prefWidth="60"/>
+                <TableColumn fx:id="colProfitLoss" text="Profit" prefWidth="60"/>
+                <TableColumn fx:id="colToGoal" text="To Goal" prefWidth="60"/>
+            </columns>
+        </TableView>
+
+
+
+    </VBox>
+
+</StackPane>
