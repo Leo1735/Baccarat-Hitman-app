@@ -814,7 +814,18 @@ public class HelloController {
     }
 
 
+    private void updateLockedOutputs() {
 
+        String msg = "All systems are complete.\nProceed to recovery.";
+
+        if (playerSystem.isSystemLocked()) {
+            txtPlayerOutput.setText(msg);
+        }
+
+        if (bankerSystem.isSystemLocked()) {
+            txtBankerOutput.setText(msg);
+        }
+    }
     /**
      * Reset both systems to their default plan/state.
      */
@@ -1279,6 +1290,7 @@ public class HelloController {
         updateCurrentDay();
         updateCompoundingLabels();
         updateFieldPrompts();
+        updateLockedOutputs();
     }
 
     private void updateTotals() {
@@ -1332,13 +1344,19 @@ public class HelloController {
         setRecoveredLabel(lblPlayerRecovered, playerSystem.getRecoveredThisStage());
         lblPlayerProfit.setText(String.format("💲%.2f", playerSystem.getProfit()));
         lblPlayerBank.setText(String.format("💲%.2f", playerSystem.getBank()));
-        String msg = playerSystem.getStatusMessage();
-        if (playerSystem.shouldMoveShoe() == 1) {
-            msg = "Move To New Shoe \n" + msg;
-        }else if (playerSystem.shouldMoveShoe() == 2) {
-            msg = "Stay In Shoe \n" + msg;
-        }else if (playerSystem.isSystemLocked() ) {
 
+        String msg;
+
+        if (playerSystem.isSystemLocked()) {
+            msg = "$" +playerSystem.getBank()+" Lost \nAll systems are complete.\nProceed to recovery.";
+        } else {
+            msg = playerSystem.getStatusMessage();
+
+            if (playerSystem.shouldMoveShoe() == 1) {
+                msg = "Move To New Shoe \n" + msg;
+            } else if (playerSystem.shouldMoveShoe() == 2) {
+                msg = "Stay In Shoe \n" + msg;
+            }
         }
 
         txtPlayerOutput.setText(msg);
@@ -1386,12 +1404,18 @@ public class HelloController {
         setLabelColor(lblBankerProfit, system.getProfit());
         setLabelColor(lblBankerBank, system.getProfit());
 
-        String msg = system.getStatusMessage();
+        String msg;
 
-        if (system.shouldMoveShoe() == 1) {
-            msg = "Move To New Shoe\n" + msg;
-        } else if (system.shouldMoveShoe() == 2) {
-            msg = "Stay In Shoe\n" + msg;
+        if (system.isSystemLocked()) {
+            msg = "$" +bankerSystem.getBank()+" Lost \nAll systems are complete.\nProceed to recovery.";
+        } else {
+            msg = system.getStatusMessage();
+
+            if (system.shouldMoveShoe() == 1) {
+                msg = "Move To New Shoe\n" + msg;
+            } else if (system.shouldMoveShoe() == 2) {
+                msg = "Stay In Shoe\n" + msg;
+            }
         }
 
         txtBankerOutput.setText(msg);
