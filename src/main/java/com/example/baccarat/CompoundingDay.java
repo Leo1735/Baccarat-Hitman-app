@@ -10,7 +10,8 @@ public class CompoundingDay implements Serializable {
     private double opening;
     private double profitLoss;
     private double toGoal;
-
+    private double dailyGoal;
+    private int noDays;
     public CompoundingDay(int day, double opening) {
         this.day = day;
         this.opening = opening;
@@ -26,4 +27,15 @@ public class CompoundingDay implements Serializable {
     public void setOpening(double opening) { this.opening = opening; }
     public void setProfitLoss(double profitLoss) { this.profitLoss = profitLoss; }
     public void setToGoal(double toGoal) { this.toGoal = toGoal; }
+
+    public double getDailyGoal() { return dailyGoal; }
+    public void setDailyGoal(double dailyGoal) { this.dailyGoal = dailyGoal; }
+
+    public int getNoDays() {
+        return noDays;
+    }
+
+    public void setNoDays(int noDays) {
+        this.noDays = noDays;
+    }
 }

@@ -3,7 +3,7 @@
 ======================================================= */
 
 .root {
-    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-font-family: "Noto Sans";
     -fx-font-size: 13px;
     -fx-background-color: #121218;
     -fx-text-fill: #e6e6e6;
@@ -350,7 +350,7 @@
  #compoundingOverlay .column-header .label {
      -fx-text-fill: #9b9bb0;
      -fx-font-weight: bold;
-     -fx-font-size: 12px;
+     -fx-font-size: 10px;
  }
 
  /* Rows */
@@ -372,5 +372,7 @@
      -fx-text-fill: white;
      -fx-alignment: CENTER;
      -fx-padding: 8;
-     -fx-font-size: 12;
+     -fx-font-size: 10;
  }
+ .combo-box {
+ -fx-text-fill: white;}

@@ -18,7 +18,7 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/baccarat/baccarat.fxml"));
-        Scene scene = new Scene(loader.load(), 300, 400);
+        Scene scene = new Scene(loader.load(), 300, 500);
         scene.getStylesheets().add(getClass().getResource("/com/example/baccarat/styles.css").toExternalForm());
 // Example: get the top bar node by fx:id (from controller or lookup)
         Pane topBar = (Pane) scene.lookup("#topBar");
@@ -45,7 +45,7 @@ public class MainApp extends Application {
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
         primaryStage.setX(0);
         primaryStage.setY(0);
-        primaryStage.setHeight(650);
+        primaryStage.setHeight(700);
 
 
     }

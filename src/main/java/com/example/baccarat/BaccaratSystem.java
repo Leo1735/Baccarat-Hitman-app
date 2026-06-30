@@ -138,6 +138,7 @@ public class BaccaratSystem {
         waitingDoubleAttempt = false;
         doubleBaseUnits = 0.0;
         systemLocked = false;
+
     }
     public int shouldMoveShoe() {
         // Trigger on a win
@@ -160,6 +161,84 @@ public class BaccaratSystem {
     public void setBetType(BetType type) { this.betType = type; }
 
     // --- Record win/loss ---
+
+    public void recordCombinedWin(double payoutMultiplier) {
+        if (systemLocked) return;
+
+        saveSnapshot();
+
+        StageData stage = stages[stageIndex];
+
+        double betUnits;
+
+        if (useDoubleUpPlan && waitingDoubleAttempt) {
+            betUnits = doubleBaseUnits * 2.0;
+        } else {
+            betUnits = stage.getCurrentBet();
+        }
+
+        double betMoney = betUnits * baseUnit.get() * payoutMultiplier;
+
+        totalWins++;
+        currentWinStreak++;
+
+        maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+
+        winsPerStage[stageIndex]++;
+        stageWins[stageIndex]++;
+
+        if (!waitingDoubleAttempt) {
+            if (stage.currentIndex == 0) firstBetWins++;
+            else if (stage.currentIndex == 1) secondBetWins++;
+        }
+
+        profit.set(profit.get() + betMoney);
+        bank.set(bank.get() + betMoney);
+
+        stage.recovered += betMoney;
+
+        if (stageIndex == 0) {
+            stage.recovered = 0;
+        }
+
+        statusMessage.set(String.format("WIN! +%.2f", betMoney));
+
+        if (useDoubleUpPlan) {
+
+            if (waitingDoubleAttempt) {
+
+                waitingDoubleAttempt = false;
+                doubleBaseUnits = 0;
+
+                stageIndex = 0;
+
+                for (StageData s : stages) {
+                    s.resetIndex();
+                }
+
+                statusMessage.set("Double-up WON.\nReset to Stage 1");
+
+                currentLoseStreak = 0;
+
+            } else {
+
+                waitingDoubleAttempt = true;
+                doubleBaseUnits = stage.getCurrentBet();
+
+                statusMessage.set("Double up Attempt");
+            }
+
+        } else {
+
+            currentLoseStreak = 0;
+
+            stages[stageIndex].resetIndex();
+
+            checkRecovery();
+        }
+
+        updateUIState();
+    }
     public void recordWin() {
         if (systemLocked) return;
         saveSnapshot();
@@ -466,6 +545,8 @@ public class BaccaratSystem {
             // Banker
             out.writeDouble(banker.baseUnit.get());
             out.writeDouble(banker.bank.get());
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -674,13 +755,25 @@ public class BaccaratSystem {
         if (stage < 0 || stage >= stageWins.length) return 0;
         return stageWins[stage] + stageLosses[stage];
     }
-    public static void saveControllerSettings(File file, double pointValue, double initialStopLoss  , double initialStopProfit,double stopLoss, double stopProfit) {
+    public static void saveControllerSettings(
+            File file,
+            double pointValue,
+            double initialStopLoss,
+            double initialStopProfit,
+            double stopLoss,
+            double stopProfit,
+            String controllerValue) {
+
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
+
             out.writeDouble(pointValue);
             out.writeDouble(initialStopLoss);
             out.writeDouble(initialStopProfit);
             out.writeDouble(stopLoss);
             out.writeDouble(stopProfit);
+
+            out.writeUTF(controllerValue == null ? "" : controllerValue);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

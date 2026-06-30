@@ -36,3 +36,13 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Java runtime (too large)
+runtime/
+custom-runtime/
+
+# Build files
+*.class
+*.jar
+target/
+bin/
