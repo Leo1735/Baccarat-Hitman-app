@@ -1447,8 +1447,9 @@ public class HelloController {
 
 
         if (lblFullTotalProfit != null) {
+            // Keep progress and value on a single line so the static label text and value are rendered together
             lblFullTotalProfit.setText(String.format(
-                    "Progress:\n £%.2f (£%.2f remaining)",
+                    "Progress: £%.2f ( £%.2f remaining)",
                     totalBank, remaining));
             setLabelColor(lblFullTotalProfit, remaining <= 0 ? 1 : (profit < 0 ? -1 : 0));
         }
