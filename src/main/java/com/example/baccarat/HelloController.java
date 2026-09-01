@@ -1143,18 +1143,21 @@ public class HelloController {
         boolean playerLocked = playerSystem.isSystemLocked();
         boolean bankerLocked = bankerSystem.isSystemLocked();
 
-        if (btnRecoveryPit != null)
-            btnRecoveryPit.setVisible(playerLocked);
+        if (trackingMode == TrackingMode.COMBINED) {
+            // In combined mode the player system represents both sides.
+            // When the combined system is locked, show recover buttons on both tabs so user can open recovery from either side.
+            if (btnRecoveryPit != null) btnRecoveryPit.setVisible(playerLocked);
+            if (btnRecoveryPitBank != null) btnRecoveryPitBank.setVisible(playerLocked);
 
-        if (btnRecoveryPitBank != null)
-            btnRecoveryPitBank.setVisible(bankerLocked);
+            if (lblPlayerRecovered != null) lblPlayerRecovered.setVisible(!playerLocked);
+            if (lblBankerRecovered != null) lblBankerRecovered.setVisible(!playerLocked);
+        } else {
+            if (btnRecoveryPit != null) btnRecoveryPit.setVisible(playerLocked);
+            if (btnRecoveryPitBank != null) btnRecoveryPitBank.setVisible(bankerLocked);
 
-
-        if (lblPlayerRecovered != null)
-            lblPlayerRecovered.setVisible(!playerLocked);
-
-        if (lblBankerRecovered != null)
-            lblBankerRecovered.setVisible(!bankerLocked);
+            if (lblPlayerRecovered != null) lblPlayerRecovered.setVisible(!playerLocked);
+            if (lblBankerRecovered != null) lblBankerRecovered.setVisible(!bankerLocked);
+        }
     }
 
 
