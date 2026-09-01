@@ -1254,7 +1254,12 @@ public class HelloController {
             @Override protected void updateItem(Double value, boolean empty) {
                 super.updateItem(value, empty);
                 if (empty || value == null) { setText(null); setStyle(""); return; }
-                setText(String.format("%.2f%%", value));
+
+                CompoundingDay row = getTableView().getItems().get(getIndex());
+                double opening = row.getOpening();
+                double targetBalance = opening * (1 + value / 100.0);
+
+                setText(String.format("%.2f%% (£%.2f)", value, targetBalance));
                 setStyle(value > 0 ? "-fx-text-fill:#2ecc71;" : value < 0 ? "-fx-text-fill:#e74c3c;" : "-fx-text-fill:white;");
             }
         });
@@ -1310,12 +1315,15 @@ public class HelloController {
                     return;
                 }
 
-                setText(String.format("%.2f%%", value));
-
                 CompoundingDay row = getTableView().getItems().get(getIndex());
 
+                double opening = row.getOpening();
+                double targetBalance = opening * (1 + value / 100.0);
+
+                setText(String.format("%.2f%% (£%.2f)", value, targetBalance));
+
                 double actual = row.getOpening() + row.getProfitLoss();
-                double threshold = row.getOpening() * (1 + value / 100.0);
+                double threshold = targetBalance;
 
                 if (actual >= threshold) {
                     setStyle("-fx-text-fill: #2ecc71;");
