@@ -1205,16 +1205,18 @@ public class HelloController {
         progress.setMaxWidth(Double.MAX_VALUE);
         progress.setWrapText(true);
         lblFullTotalProfit = progress;
-        // Keep goal controls on one line and the progress text on its own full-width row so it remains visible when resizing
-        HBox left = new HBox(12, goalLabel, goalField);
-        left.setAlignment(Pos.CENTER_LEFT);
-        left.setFillHeight(true);
-        left.setMaxWidth(Region.USE_COMPUTED_SIZE);
-        VBox summary = new VBox(6, left, progress);
-        summary.setFillWidth(true);
-        VBox.setVgrow(progress, Priority.NEVER);
+        // Keep goal and progress on the same row but allow the progress label to wrap instead of ellipsizing
+        HBox summary = new HBox(12, goalLabel, goalField, progress);
+        summary.setAlignment(Pos.CENTER_LEFT);
+        summary.setFillHeight(true);
+        // keep goal field compact so progress has room to expand/wrap
+        goalField.setMinWidth(60);
+        goalField.setPrefWidth(100);
+        goalField.setMaxWidth(110);
+        progress.setWrapText(true);
         progress.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(left, Priority.NEVER);
+        HBox.setHgrow(progress, Priority.ALWAYS);
+        HBox.setHgrow(goalField, Priority.NEVER);
         TableView<CompoundingDay> table = new TableView<>();
         TableColumn<CompoundingDay, Integer> day = new TableColumn<>("Day");
         TableColumn<CompoundingDay, Double> opening = moneyColumn("Opening (£)", "opening");
