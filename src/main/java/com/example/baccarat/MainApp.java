@@ -128,10 +128,11 @@ public class MainApp extends Application {
                 Platform.runLater(() -> {
                     // Coalescing mouse events prevents bottom-edge resizing from
                     // triggering multiple expensive layout passes per frame.
-                    stage.setWidth(pendingW[0]);
-                    stage.setHeight(pendingH[0]);
+                    // Apply stage position before size to avoid transient layout jitter
                     stage.setX(pendingX[0]);
                     stage.setY(pendingY[0]);
+                    stage.setWidth(pendingW[0]);
+                    stage.setHeight(pendingH[0]);
                     resizeQueued[0] = false;
                 });
             }
