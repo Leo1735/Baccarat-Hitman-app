@@ -2,6 +2,7 @@ package com.example.baccarat;
 
 import java.io.Serializable;
 
+/** Serializable daily record used by the compounding-plan table and save file. */
 public class CompoundingDay implements Serializable {
 
     private static final long serialVersionUID = 1L;

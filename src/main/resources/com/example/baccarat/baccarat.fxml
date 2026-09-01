@@ -9,10 +9,10 @@
            fx:controller="com.example.baccarat.HelloController"
            prefWidth="600" prefHeight="1200">
 
-    <!-- Main BorderPane -->
+
     <BorderPane fx:id="mainPane">
 
-        <!-- Top Bar -->
+
         <top>
             <HBox fx:id="topBar" spacing="10"
                   style="-fx-background-color: rgba(54,54,85,0.22); -fx-padding: 6; -fx-alignment: center;"
@@ -35,7 +35,7 @@
 
         </top>
 
-        <!-- Tabs -->
+
         <center>
             <VBox style="-fx-padding: 10;" VBox.vgrow="ALWAYS" alignment="CENTER">
                 <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE"
@@ -43,12 +43,12 @@
                          VBox.vgrow="ALWAYS">
                     <tabs>
 
-                        <!-- PLAYER TAB -->
+
                         <Tab text="Player" closable="false" fx:id="player">
                             <StackPane alignment="TOP_CENTER">
                                 <VBox spacing="10" alignment="TOP_CENTER" styleClass="tab-content">
 
-                                    <!-- Stats Box 1 -->
+
                                     <StackPane styleClass="stats-pane">
                                         <GridPane fx:id="playerStatsGrid" hgap="30" vgap="6" alignment="CENTER">
                                             <columnConstraints>
@@ -91,7 +91,7 @@
 
                                         </GridPane>
 
-                                        <!-- Cross overlays -->
+
                                         <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
                                                    styleClass="stats-separator-player"
                                                    maxHeight="${playerStatsGrid.height}"/>
@@ -100,7 +100,7 @@
                                                    maxWidth="${playerStatsGrid.width}"/>
                                     </StackPane>
 
-                                    <!-- Stats Box 2 -->
+
                                     <StackPane styleClass="stats-pane">
                                         <GridPane hgap="30" vgap="6" alignment="CENTER">
                                             <columnConstraints>
@@ -141,7 +141,7 @@
                                                    maxWidth="Infinity" fx:id="sepPlayerBank"/>
                                     </StackPane>
 
-                                        <StackPane styleClass="stats-pane" alignment="CENTER" prefWidth="600">
+                                        <StackPane styleClass="stats-pane" alignment="CENTER" maxWidth="Infinity">
                                             <GridPane fx:id="pointsStatsGrid" hgap="30" vgap="6" alignment="CENTER">
                                                 <columnConstraints>
                                                     <ColumnConstraints halignment="CENTER"/>
@@ -152,7 +152,7 @@
                                                     <RowConstraints valignment="CENTER"/>
                                                 </rowConstraints>
 
-                                                <!-- Row 1 -->
+
                                                 <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
                                                     <Label text="Point Value" styleClass="stats-title"/>
                                                     <Label fx:id="lblPointValue" styleClass="stats-value"/>
@@ -166,7 +166,7 @@
                                                     <Label fx:id="lblPointsProfit" styleClass="stats-value"/>
                                                 </VBox>
 
-                                                <!-- Row 2 -->
+
                                                 <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
                                                     <Label text="Stop Loss"  fx:id="lblStopLossValue" styleClass="stats-title"/>
                                                     <Label fx:id="lblStopLoss" styleClass="stats-value"/>
@@ -178,7 +178,7 @@
                                                 </VBox>
                                             </GridPane>
 
-                                            <!-- Centered separators for visual cross -->
+
                                             <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
                                                        styleClass="stats-separator"
                                                        maxHeight="Infinity"/>
@@ -187,13 +187,13 @@
                                                        maxWidth="Infinity"/>
                                         </StackPane>
 
-                                    <!-- Output + Buttons -->
+
                                     <HBox spacing="5" >
-                                        <Button fx:id="txtPlayerBetAmount" onAction="#handlePlayerWin" prefWidth="160" prefHeight="75" styleClass="stats-player" />
-                                        <Button text="BANKER" onAction="#handlePlayerLoss" prefWidth="160" prefHeight="75" styleClass="stats-banker"/>
+                                        <Button fx:id="txtPlayerBetAmount" onAction="#handlePlayerWin" prefHeight="75" maxWidth="Infinity" HBox.hgrow="ALWAYS" styleClass="stats-player" />
+                                        <Button text="BANKER" onAction="#handlePlayerLoss" prefHeight="75" maxWidth="Infinity" HBox.hgrow="ALWAYS" styleClass="stats-banker"/>
                                     </HBox>
                                     <HBox spacing="10" alignment="CENTER">
-                                        <Button text="UNDO" onAction="#handlePlayerUndo" styleClass="undo"/>
+                                        <Button fx:id="btnPlayerUndo" onAction="#handlePlayerUndo" styleClass="undo"/>
                                         <Label fx:id="txtPlayerOutput" styleClass="stats-value1" prefWidth="270" prefHeight="100"/>
 
 
@@ -204,12 +204,12 @@
                             </StackPane>
                         </Tab>
 
-                        <!-- BANKER TAB -->
+
                         <Tab text="Banker" closable="false" fx:id="banker">
                             <StackPane alignment="TOP_CENTER">
                                 <VBox spacing="10" alignment="TOP_CENTER" styleClass="tab-content">
 
-                                    <!-- Stats Box 1 -->
+
                                     <StackPane styleClass="stats-pane">
                                         <GridPane fx:id="bankerStatsGrid" hgap="30" vgap="6" alignment="CENTER">
                                             <columnConstraints>
@@ -237,7 +237,14 @@
 
                                             <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
                                                 <Label text="To Recover" styleClass="stats-title"/>
-                                                <Label fx:id="lblBankerRecovered" styleClass="stats-value"/>
+                                                <StackPane>
+                                                    <Label fx:id="lblBankerRecovered" styleClass="stats-value"/>
+                                                    <Button fx:id="btnRecoveryPitBank"
+                                                            text="RECOVER"
+                                                            visible="false"
+                                                            onAction="#openRecoveryPit"
+                                                            style="-fx-background-color: #ff4444; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                                                </StackPane>
                                             </VBox>
                                             <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2" alignment="CENTER">
                                                 <Label text="Stake:" style="-fx-text-fill:#bfbfbf;" styleClass="stats-title"/>
@@ -254,7 +261,7 @@
                                                    maxWidth="Infinity"/>
                                     </StackPane>
 
-                                    <!-- Stats Box 2 -->
+
                                     <StackPane styleClass="stats-pane">
                                         <GridPane hgap="30" vgap="6" alignment="CENTER">
                                             <columnConstraints>
@@ -294,7 +301,7 @@
                                                    styleClass="stats-separator-banker"
                                                    maxWidth="Infinity" fx:id="sepBankerBank"/>
                                     </StackPane>
-                                    <StackPane styleClass="stats-pane" alignment="CENTER" prefWidth="600">
+                                    <StackPane styleClass="stats-pane" alignment="CENTER" maxWidth="Infinity">
                                         <GridPane fx:id="bankerPointsStatsGrid" hgap="30" vgap="6" alignment="CENTER">
                                             <columnConstraints>
                                                 <ColumnConstraints halignment="CENTER"/>
@@ -305,7 +312,7 @@
                                                 <RowConstraints valignment="CENTER"/>
                                             </rowConstraints>
 
-                                            <!-- Row 1 -->
+
                                             <VBox GridPane.rowIndex="0" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
                                                 <Label text="Point Value" styleClass="stats-title"/>
                                                 <Label fx:id="lblBankerPointValue" styleClass="stats-value"/>
@@ -321,7 +328,7 @@
                                             </VBox>
 
 
-                                            <!-- Row 2 -->
+
                                             <VBox GridPane.rowIndex="1" GridPane.columnIndex="0" spacing="2" alignment="CENTER">
                                                 <Label text="Stop Loss" fx:id="lblBankerStopLossValue" styleClass="stats-title"/>
                                                 <Label fx:id="lblBankerStopLoss" styleClass="stats-value"/>
@@ -333,7 +340,7 @@
                                             </VBox>
                                         </GridPane>
 
-                                        <!-- Centered separators for visual cross -->
+
                                         <Separator orientation="VERTICAL" StackPane.alignment="CENTER"
                                                    styleClass="stats-separator"
                                                    maxHeight="Infinity"/>
@@ -342,14 +349,14 @@
                                                    maxWidth="Infinity"/>
                                     </StackPane>
 
-                                    <!-- Output + Buttons -->
+
                                     <HBox spacing="5">
-                                    <Button text="Player" onAction="#handleBankerLoss" prefWidth="170"  prefHeight="75" styleClass="stats-player"/>
-                                    <Button fx:id="txtBankerBetAmount"  onAction="#handleBankerWin" prefWidth="170"  prefHeight="75" styleClass="stats-banker"/>
+                                    <Button text="Player" onAction="#handleBankerLoss" prefHeight="75" maxWidth="Infinity" HBox.hgrow="ALWAYS" styleClass="stats-player"/>
+                                    <Button fx:id="txtBankerBetAmount"  onAction="#handleBankerWin" prefHeight="75" maxWidth="Infinity" HBox.hgrow="ALWAYS" styleClass="stats-banker"/>
                                     </HBox>
                                     <HBox spacing="5" alignment="CENTER">
 
-                                        <Button text="↺" onAction="#handleBankerUndo" styleClass="undo"/>
+                                        <Button fx:id="btnBankerUndo" onAction="#handleBankerUndo" styleClass="undo"/>
                                         <Label  fx:id="txtBankerOutput" styleClass="stats-value1" prefWidth="270" prefHeight="100"/>
 
                                     </HBox>
@@ -363,7 +370,7 @@
             </VBox>
         </center>
 
-        <!-- Bottom -->
+
         <bottom>
 
         </bottom>
@@ -381,7 +388,7 @@
           translateY="45"
           StackPane.alignment="CENTER">
 
-        <!-- Header -->
+
         <HBox alignment="CENTER" spacing="10">
             <Label text="Settings"
                    style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;"/>
@@ -390,12 +397,12 @@
                     style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"/>
         </HBox>
 
-        <!-- Plan ChoiceBox -->
+
         <ChoiceBox fx:id="planChoice"
                    style="-fx-background-color: #444; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
                    maxWidth="Infinity" />
 
-        <!-- Text Fields -->
+
         <TextField fx:id="txtBaseUnit"
                    promptText="Stake"
                    style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"
@@ -424,7 +431,7 @@
             <Label text = " Compounding Days " style="-fx-background-color: #555; -fx-padding: 4; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"/>
         <ComboBox fx:id="cmbDays" prefWidth="75" style="-fx-background-color: #555; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5; -fx-background-radius: 5;"/>
         </HBox>
-        <!-- Buttons -->
+
         <Button text="Reset"
                 onAction="#handleResetBoth"
                 style="-fx-background-color: #666; -fx-text-fill: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5;"
@@ -459,7 +466,7 @@
                 style="-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px;"
                 maxWidth="Infinity"/>
 
-        <!-- 1st Bet Win Rate -->
+
         <HBox spacing="5" alignment="CENTER_LEFT">
             <Label text="1st Bet Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
             <Label fx:id="lblFirstBetTotal" text="0%" style="-fx-text-fill: white;" />
@@ -467,7 +474,7 @@
             <Label fx:id="lblFirstBetBanker" text="0%" style="-fx-text-fill: #e53935;" />
         </HBox>
 
-        <!-- 2nd Bet Win Rate -->
+
         <HBox spacing="5" alignment="CENTER_LEFT">
             <Label text="2nd Bet Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
             <Label fx:id="lblSecondBetTotal" text="0%" style="-fx-text-fill: white;" />
@@ -475,7 +482,7 @@
             <Label fx:id="lblSecondBetBanker" text="0%" style="-fx-text-fill: #e53935;" />
         </HBox>
 
-        <!-- Stage 1 Win Rate -->
+
         <HBox spacing="5" alignment="CENTER_LEFT">
             <Label text="Stage 1 Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
             <Label fx:id="lblStage1Total" text="0%" style="-fx-text-fill: white;" />
@@ -483,7 +490,7 @@
             <Label fx:id="lblStage1Banker" text="0%" style="-fx-text-fill: #e53935;" />
         </HBox>
 
-        <!-- Stage 2 Win Rate -->
+
         <HBox spacing="5" alignment="CENTER_LEFT">
             <Label text="Stage 2 Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
             <Label fx:id="lblStage2Total" text="0%" style="-fx-text-fill: white;" />
@@ -491,7 +498,7 @@
             <Label fx:id="lblStage2Banker" text="0%" style="-fx-text-fill: #e53935;" />
         </HBox>
 
-        <!-- Stage 3 Win Rate -->
+
         <HBox spacing="5" alignment="CENTER_LEFT">
             <Label text="Stage 3 Win:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
             <Label fx:id="lblStage3Total" text="0%" style="-fx-text-fill: white;" />
@@ -503,7 +510,7 @@
 
 
     <VBox spacing="8">
-        <!-- Streaks -->
+
         <HBox spacing="5" alignment="CENTER_LEFT">
             <Label text="Win Streak:" style="-fx-text-fill: white; -fx-font-weight: bold;" />
             <Label text="   " style="-fx-text-fill: white; -fx-font-weight: bold;" />
@@ -529,19 +536,19 @@
 
         <VBox alignment="CENTER" spacing="5">
 
-            <!-- Titles above each chart -->
+
             <HBox alignment="CENTER" spacing="30" >
                 <Label text="  Total" style="-fx-text-fill: #7a7a7a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
                 <Label text=" Player" style="-fx-text-fill: #7a7a7a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
                 <Label text="Banker" style="-fx-text-fill: #7a7a7a; -fx-font-size: 16px; -fx-font-weight: bold;"/>
             </HBox>
 
-            <!-- Thin white line -->
+
             <Rectangle height="1" fill="#555" width="240" />
 
-            <!-- Pie charts -->
+
             <HBox alignment="CENTER" prefHeight="60" maxHeight="60" spacing="13" translateY="10" >
-                <!-- Total Pie -->
+
                 <StackPane prefWidth="60" prefHeight="60" maxWidth="60" maxHeight="60" minWidth="60" minHeight="60">
                     <PieChart fx:id="pieChart"
                               labelsVisible="false" legendVisible="false" startAngle="90"
@@ -552,7 +559,7 @@
                         <Label fx:id="lblLossPct" text="0%" style="-fx-text-fill: red; -fx-font-size: 16px; -fx-font-weight: bold;"/>
                     </VBox>
                 </StackPane>
-                <!-- Player Pie -->
+
                 <StackPane prefWidth="60" prefHeight="60" maxWidth="60" maxHeight="60" minWidth="60" minHeight="60">
                     <PieChart fx:id="pieChartPlayer"
                               labelsVisible="false" legendVisible="false" startAngle="90"
@@ -564,7 +571,7 @@
                     </VBox>
                 </StackPane>
 
-                <!-- Banker Pie -->
+
                 <StackPane prefWidth="60" prefHeight="60" maxWidth="60" maxHeight="60" minWidth="60" minHeight="60">
                     <PieChart fx:id="pieChartBanker"
                               labelsVisible="false" legendVisible="false" startAngle="90"
@@ -664,23 +671,22 @@
                     style="-fx-background-color:#444; -fx-text-fill:white;"/>
         </HBox>
 
-        <HBox spacing="10">
+        <HBox spacing="30">
             <VBox>
                 <Label text=" Goal:" style="-fx-text-fill:white;"/>
                 <TextField fx:id="txtGoal" promptText="Goal" prefWidth="50"/>
             </VBox>
 
-            <Label fx:id="lblStartBalance" prefWidth="70"/>
-            <Label fx:id="lblCurrentBalance" prefWidth="70"/>
-            <Label fx:id="lblFullTotalProfit" prefWidth="70"/>
+            <Label fx:id="lblFullTotalProfit" prefWidth="120"/>
         </HBox>
         <TableView fx:id="compoundingTable">
             <columns>
                 <TableColumn fx:id="colDay" text="Day" prefWidth="30"/>
-                <TableColumn fx:id="colOpening" text="Open" prefWidth="54"/>
-                <TableColumn fx:id="colProfitLoss" text="Profit" prefWidth="54"/>
-                <TableColumn fx:id="colDailyGoal" text="Daily " prefWidth="54"/>
-                <TableColumn fx:id="colToGoal" text="To Go" prefWidth="54"/>
+                <TableColumn fx:id="colOpening" text="Open" prefWidth="70"/>
+                <TableColumn fx:id="colDailyGoal" text="Daily goal" prefWidth="70"/>
+                <TableColumn fx:id="colProfitLoss" text="Profit" prefWidth="70"/>
+
+
 
             </columns>
         </TableView>
@@ -699,19 +705,21 @@
 
             <Label text="Compounding Plan"
                    style="-fx-font-size:18px; -fx-font-weight:bold; -fx-text-fill: white"/>
-
             <Label wrapText="true"
-                   text="The Compounding Plan helps track progress towards a target bankroll."  style="-fx-text-fill: white"/>
-
+                   text="The Compounding Plan tracks your progress toward a target on top of your current bank."
+                   style="-fx-text-fill: white"/>
             <Label wrapText="true"
-                   text="1. Enter your starting bank in settings.
-                         &#10;2. Choose the number of days in settings.
-                        &#10;3. Enter your goal.
-                         &#10;4. Each day records your progress automatically." style="-fx-text-fill: white"/>
-
+                   text="1. Your starting bank is set automatically from your current balance.
+             &#10;2. Choose the number of days in settings.
+             &#10;3. Enter your goal - this is the amount you want to add on top of your bank.
+             &#10;4. Each day records your progress automatically."
+                   style="-fx-text-fill: white"/>
             <Label wrapText="true"
-                   text="Daily Goal shows the balance required each day to reach your goal in the number of days selected." style="-fx-text-fill: white"/>
-
+                   text="Progress shows your current bank and how much is left to reach bank + goal."
+                   style="-fx-text-fill: white"/>
+            <Label wrapText="true"
+                   text="Daily shows the balance you need to reach by the end of each day to stay on track."
+                   style="-fx-text-fill: white"/>
             <Button text="X"
                     onAction="#closeCompoundingHelp"/>
         </VBox>

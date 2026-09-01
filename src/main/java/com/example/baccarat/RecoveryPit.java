@@ -1,5 +1,6 @@
 package com.example.baccarat;
 
+/** Maintains the dynamically recalculated recovery plan independently of the UI. */
 public class RecoveryPit {
 
     public enum Risk {
@@ -21,6 +22,7 @@ public class RecoveryPit {
     private int currentBox;
     private double currentProgress;
     private double boxTarget;
+    private double recoveredAmount;
 
     public void start(double loss, Risk risk) {
 
@@ -28,36 +30,27 @@ public class RecoveryPit {
         this.risk = risk;
         this.currentBox = 1;
         this.currentProgress = 0;
-
-        this.boxTarget = Math.ceil(this.totalLoss / risk.getBoxes());
+        this.recoveredAmount = 0;
+        recalculateBoxTarget();
     }
 
     public void applyWin(double amount) {
 
-        currentProgress += amount;
-
-        while (currentProgress >= boxTarget && currentBox < risk.getBoxes()) {
-            currentProgress -= boxTarget;
-            currentBox++;
-        }
+        recoveredAmount += Math.max(amount, 0);
+        updateBoxProgress();
     }
 
     public void applyLoss(double amount) {
 
-        currentProgress -= amount;
 
-        while (currentProgress < 0 && currentBox > 1) {
-            currentBox--;
-            currentProgress += boxTarget;
-        }
 
-        if (currentBox == 1 && currentProgress < 0) {
-            currentProgress = 0;
-        }
+        totalLoss += Math.max(amount, 0);
+        recalculateBoxTarget();
+        updateBoxProgress();
     }
 
     public boolean isComplete() {
-        return currentBox >= risk.getBoxes() && currentProgress >= boxTarget;
+        return recoveredAmount >= risk.getBoxes() * boxTarget;
     }
 
     public double getBoxTarget() {
@@ -89,6 +82,23 @@ public class RecoveryPit {
     }
 
     public double getTotalRecovered() {
-        return (currentBox - 1) * boxTarget + currentProgress;
+        return recoveredAmount;
+    }
+
+    private void recalculateBoxTarget() {
+
+
+        boxTarget = Math.ceil(totalLoss / risk.getBoxes());
+    }
+
+    private void updateBoxProgress() {
+        int completedBoxes = (int) Math.floor(recoveredAmount / boxTarget);
+        if (completedBoxes >= risk.getBoxes()) {
+            currentBox = risk.getBoxes();
+            currentProgress = boxTarget;
+            return;
+        }
+        currentBox = completedBoxes + 1;
+        currentProgress = recoveredAmount - completedBoxes * boxTarget;
     }
 }

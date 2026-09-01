@@ -8,34 +8,44 @@ import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.shape.SVGPath;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Coordinates the JavaFX screens and delegates betting state to BaccaratSystem. */
 public class HelloController {
 
 
-    // === Player Tab UI ===
+
     @FXML private Label  lblPlayerNextBet, lblPlayerRecovered, lblPlayerProfit, lblPlayerBank, lblPlayerUnit, lblPlayerStageDetail, txtPlayerOutput, lblPointsProfit;
     @FXML private Button txtPlayerBetAmount, txtBankerBetAmount;
-    // === Banker Tab UI ===
+    @FXML private Button btnPlayerUndo, btnBankerUndo;
+
     @FXML private Label lblBankerStage, lblBankerNextBet, lblBankerRecovered, lblBankerProfit, lblBankerBank, lblBankerUnit, txtBankerOutput, lblBankerPointsProfit;
 
 
-    // === Charts / Stats labels ===
+
     @FXML private Label lblWinPct, lblLossPct, lblPlayerWinPct, lblPlayerLossPct, lblBankerWinPct, lblBankerLossPct,
             playerWinStreak, playerLossStreak, bankerWinStreak, bankerLossStreak, winStreak, lossStreak;
     @FXML private PieChart pieChart, pieChartPlayer, pieChartBanker;
 
-    // === Settings Pane (unified) ===
+
     @FXML private Label lblTotalProfit, lblTotalBank, lblTotalProfitBank, lblTotalBankBank;
     @FXML private VBox settingsPane;
     @FXML private Button btnSaveSettings, btnSaveApp;
@@ -44,19 +54,19 @@ public class HelloController {
 
     @FXML private Separator sepPlayerProfit, sepPlayerBank, sepBankerProfit, sepBankerBank;
 
-    // === Loading Overlay ===
+
     @FXML private VBox loadingOverlay;
     @FXML private Label lblFirstBetRate, lblSecondBetRate, lblStage1Rate, lblStage2Rate, lblStage3Rate, lblWinStreaks, lblLossStreaks;
 
-    // Systems
+
     private BaccaratSystem playerSystem;
     private BaccaratSystem bankerSystem;
 
-    // Tabs / stats pane
+
     @FXML private TabPane tabPane;
     @FXML private VBox statsPane;
 
-    // Stats labels for breakdown
+
     @FXML private Label lblFirstBetTotal, lblFirstBetPlayer, lblFirstBetBanker;
     @FXML private Label lblSecondBetTotal, lblSecondBetPlayer, lblSecondBetBanker;
     @FXML private Label lblStage1Total, lblStage1Player, lblStage1Banker;
@@ -70,11 +80,11 @@ public class HelloController {
 
     private double pointValue = 1.0;
 
-    // RUNNING counters (these start from 0 and move as wins/losses occur)
+
     private double stopLoss = 0.0;
     private double stopProfit = 0.0;
 
-    // BASELINE values (what user sets / what should appear in the "Value" labels)
+
     private double initialStopLoss = 0.0;
     private double initialStopProfit = 0.0;
 
@@ -88,7 +98,7 @@ public class HelloController {
     @FXML private Button exitNoSaveBtn;
     @FXML private Button exitCancelBtn;
 
-    // Save stop limits before each win/loss so undo can restore (operates on running counters only)
+
     private double lastStopLoss;
     private double lastStopProfit;
 
@@ -97,15 +107,19 @@ public class HelloController {
 
     private boolean systemLockedTriggered = false;
 
+
+
+    private boolean stoppedForProfit = false;
+
     private boolean bankWasManuallySet = false;
 
     @FXML private Label lblBankerPointValue, lblBankerPointsBank, lblBankerStopLoss, lblBankerStopProfit, lblStopProfitValue, lblStopLossValue, lblBankerStopLossValue, lblBankerStopProfitValue;
 
-    // Save file locations
+
     private final File playerFile = new File("baccarat_player.dat");
     private final File bankerFile = new File("baccarat_banker.dat");
     private final File settingsFile = new File("baccarat_settings.dat");
-    // === COMPOUNDING SYSTEM ===
+
     @FXML private TableView<CompoundingDay> compoundingTable;
     @FXML private TableColumn<CompoundingDay, Integer> colDay;
     @FXML private TableColumn<CompoundingDay, Double> colOpening;
@@ -113,7 +127,7 @@ public class HelloController {
     @FXML private TableColumn<CompoundingDay, Double> colToGoal;
     @FXML private TableColumn<CompoundingDay, Double> colDailyGoal;
 
-    private double dailyRate = 0.0234; // 2.34%
+    private double dailyRate = 0.0234;
     @FXML
     private ComboBox<Integer> cmbDays;
     private int compoundingDays = 30;
@@ -131,9 +145,8 @@ public class HelloController {
     private double goal = 100;
     @FXML private TextField txtGoal;
     @FXML private Label lblStartBalance;
-    @FXML private Label lblCurrentBalance;
     @FXML private Label lblFullTotalProfit;
-    // pseudo-class constant for separators
+
     private static final PseudoClass POSITIVE = PseudoClass.getPseudoClass("positive");
     public enum TrackingMode {
         SEPARATE,
@@ -143,6 +156,12 @@ public class HelloController {
     private boolean showCompoundingHelp = false;
     @FXML
     private StackPane compoundingHelpOverlay;
+    private Stage recoveryStage;
+    private Stage compoundingStage;
+    private GridPane recoveryWindowGrid;
+    private TableView<CompoundingDay> compoundingWindowTable;
+    private Button recoveryWinButton;
+    private Button recoveryLossButton;
 
 
     @FXML
@@ -150,6 +169,7 @@ public class HelloController {
 
         playerSystem = new BaccaratSystem();
         bankerSystem = new BaccaratSystem();
+        configureUndoButtons();
 
         planChoice.setItems(FXCollections.observableArrayList(
                 "500-1",
@@ -163,9 +183,9 @@ public class HelloController {
 
         buildEmptyCompoundingGrid();
 
-        // =========================
-        // LOAD COMPOUNDING DATA
-        // =========================
+
+
+
         File compFile = new File("compounding.dat");
 
         if (compFile.exists()) {
@@ -176,9 +196,9 @@ public class HelloController {
             }
         }
 
-        // =========================
-        // LOAD SYSTEM STATE
-        // =========================
+
+
+
         if (playerFile.exists() && bankerFile.exists()) {
 
             try (ObjectInputStream in =
@@ -224,12 +244,12 @@ public class HelloController {
 
         boolean firstRun = compoundingData.isEmpty();
         showCompoundingHelp = firstRun;
-        // =========================
+
         if (compoundingData.isEmpty()) {
-            startNewDay(); // first ever run → Day 1
+            startNewDay();
 
         } else {
-            startNewDay(); // new session → next day
+            startNewDay();
         }
 
         playerSystem.setBetType(BaccaratSystem.BetType.PLAYER);
@@ -242,9 +262,9 @@ public class HelloController {
 
             applyPlan(newVal);
         });
-        // =========================
-        // EXIT HANDLING
-        // =========================
+
+
+
         exitSaveBtn.setOnAction(e -> {
 
             playerSystem.saveApp(playerFile);
@@ -316,7 +336,7 @@ public class HelloController {
             cmbDays.setValue(compoundingDays);
         } else {
             cmbDays.setValue(15);
-        } // default
+        }
         cmbDays.setOnAction(e -> {
             compoundingDays = cmbDays.getValue();
             updateCurrentDay();
@@ -338,6 +358,21 @@ public class HelloController {
             buildRecoveryGrid(risk.getBoxes());
             updateRecoveryUI();
         });
+    }
+
+    /** Uses a vector icon so the undo arrow is independent of installed fonts. */
+    private void configureUndoButtons() {
+        configureUndoButton(btnPlayerUndo);
+        configureUndoButton(btnBankerUndo);
+    }
+
+    private void configureUndoButton(Button button) {
+        if (button == null) return;
+        SVGPath arrow = new SVGPath();
+        arrow.setContent("M 10 2 L 3 8 L 10 14 L 10 10 L 15 10 C 18 10 20 12 20 15 C 20 9 18 6 14 6 L 10 6 Z");
+        arrow.setStyle("-fx-fill: #dcdcdc;");
+        button.setGraphic(arrow);
+        button.setTooltip(new Tooltip("Undo last result"));
     }
     private boolean isCombinedTrackingPlan(String plan) {
         return plan != null && plan.endsWith("P+B");
@@ -513,24 +548,21 @@ public class HelloController {
 
         double totalProfit = playerSystem.getProfit() + bankerSystem.getProfit();
 
-        // Stop profit shows positive profit only
+
         stopProfit = Math.max(totalProfit, 0);
 
-        // Stop loss shows negative profit only
+
         stopLoss = Math.min(totalProfit, 0);
 
         updateStopLabels();
     }
 
-    // when true the next updateUI() will clear the player/banker output fields
+
     private boolean suppressOutputRefresh = false;
 
 
 
-    /**
-     * Restore RUNNING counters (stopLoss/stopProfit) to previously saved running values.
-     * Do NOT overwrite the baseline initialStopLoss/initialStopProfit here - they represent what the user set.
-     */
+
     private void restoreStopLimits() {
         stopLoss = lastStopLoss;
         stopProfit = lastStopProfit;
@@ -546,13 +578,13 @@ public class HelloController {
         if (win) {
             if (playerSystem.isSystemLocked()) return;
             if (bankerSystem.isSystemLocked()) return;
-            stopProfit += betAmount;  // running profit counter moves upward from 0
-            stopLoss   += betAmount;  // running loss counter moves upward toward 0 from negative
+            stopProfit += betAmount;
+            stopLoss   += betAmount;
         } else {
             if (playerSystem.isSystemLocked()) return;
             if (bankerSystem.isSystemLocked()) return;
-            stopProfit -= betAmount;  // running profit counter moves downward toward 0
-            stopLoss   -= betAmount;  // running loss counter goes deeper negative
+            stopProfit -= betAmount;
+            stopLoss   -= betAmount;
         }
 
         updateStopLabels();
@@ -564,7 +596,7 @@ public class HelloController {
 
     private void updateStopLabels() {
 
-        // Running counters (these change as wins/losses occur)
+
         if (lblStopProfit != null)
             lblStopProfit.setText(String.format("$%.0f", stopProfit));
         if (lblStopLoss != null)
@@ -575,7 +607,7 @@ public class HelloController {
         if (lblBankerStopLoss != null)
             lblBankerStopLoss.setText(String.format("$%.0f", stopLoss));
 
-        // Baseline (original set values shown in the "Value" labels)
+
         if (lblStopProfitValue != null)
             lblStopProfitValue.setText(String.format("$%.0f", initialStopProfit));
         if (lblStopLossValue != null)
@@ -611,15 +643,12 @@ public class HelloController {
             txtStopProfit.setPromptText("Stop Profit: " + initialStopProfit);
         }
     }
-    /**
-     * Save current settings to both systems and persist to file.
-     * Clears the temporary text fields afterward.
-     */
+
     @FXML
     private void handleSaveSettings() {
         runWithLoading(() -> {
 
-            // Only update fields that have input
+
             if (txtBaseUnit != null && !txtBaseUnit.getText().trim().isEmpty()) {
                 double baseUnit = parseDouble(txtBaseUnit.getText(), playerSystem.getBaseUnit());
                 playerSystem.setBaseUnitDirect(baseUnit);
@@ -647,34 +676,34 @@ public class HelloController {
                 bankWasManuallySet = true;
             }
 
-            // Point system settings (if present)
+
             if (txtPointValue != null && !txtPointValue.getText().trim().isEmpty()) {
                 this.pointValue = parseDouble(txtPointValue.getText(), this.pointValue);
             }
 
-            // If the user provides stop-loss/stop-profit, store them as the BASELINE values,
-            // and reset the running counters so they start from 0 immediately.
+
+
             if (txtStopLoss != null && !txtStopLoss.getText().trim().isEmpty()) {
                 this.initialStopLoss = parseDouble(txtStopLoss.getText(), this.initialStopLoss);
-                this.stopLoss = 0.0; // reset running counter
+                this.stopLoss = 0.0;
             }
 
             if (txtStopProfit != null && !txtStopProfit.getText().trim().isEmpty()) {
                 this.initialStopProfit = parseDouble(txtStopProfit.getText(), this.initialStopProfit);
-                this.stopProfit = 0.0; // reset running counter
+                this.stopProfit = 0.0;
             }
 
-            // Save controller-level settings (point value and baseline stop values)
+
             BaccaratSystem.saveControllerSettings(settingsFile, pointValue, initialStopLoss, initialStopProfit, stopLoss, stopProfit, planChoice.getValue());
 
-            // Clear only fields that had input
+
             if (txtBaseUnit != null && !txtBaseUnit.getText().trim().isEmpty()) txtBaseUnit.clear();
             if (txtBank != null && !txtBank.getText().trim().isEmpty()) txtBank.clear();
             if (txtPointValue != null && !txtPointValue.getText().trim().isEmpty()) txtPointValue.clear();
             if (txtStopLoss != null && !txtStopLoss.getText().trim().isEmpty()) txtStopLoss.clear();
             if (txtStopProfit != null && !txtStopProfit.getText().trim().isEmpty()) txtStopProfit.clear();
 
-            // Update display
+
             updateStopLabels();
             updateUI();
             updateFieldPrompts();
@@ -683,10 +712,7 @@ public class HelloController {
 
 
 
-    /**
-     * Apply the values currently typed in the unified settings fields
-     * to both player and banker systems.
-     */
+
     @FXML
     private void handleSettingsValuesChange() {
         double baseUnit = txtBaseUnit != null ? parseDouble(txtBaseUnit.getText(), 1.0) : 1.0;
@@ -756,7 +782,7 @@ public class HelloController {
             setLabelColor(lblBankerStopProfit, 0);
             setLabelColor(lblStopProfit, 0);
         }
-        // Running counters (changing)
+
 
 
 
@@ -770,7 +796,7 @@ public class HelloController {
         }
 
 
-        // Baseline values (VALUE labels)
+
         if (lblStopLossValue != null)
 
             lblStopLossValue.setText("Stop Loss  ("+ String.format("$%.0f", initialStopLoss)+ ")");
@@ -782,31 +808,29 @@ public class HelloController {
         if (lblBankerStopProfitValue != null)
             lblBankerStopProfitValue.setText("Stop Profit  ("+String.format("$%.0f", initialStopProfit)+ ")");
 
-// Check stop conditions (only once)
+
         if (!systemLockedTriggered) {
 
-            // Stop Profit reached
+
             if (initialStopProfit > 0 && stopProfit >= initialStopProfit) {
                 systemLockedTriggered = true;
+                stoppedForProfit = true;
 
                 playerSystem.setSystemLocked(true);
                 bankerSystem.setSystemLocked(true);
-                
-                txtPlayerOutput.setText(" Stop Profit reached!\nReset to continue.");
-                txtBankerOutput.setText(" Stop Profit reached!\nReset to continue.");
+
 
 
             }
 
-            // Stop Loss reached
+
             else if (initialStopLoss > 0 && Math.abs(stopLoss) >= initialStopLoss) {
                 systemLockedTriggered = true;
+                stoppedForProfit = false;
 
                 playerSystem.setSystemLocked(true);
                 bankerSystem.setSystemLocked(true);
 
-                txtPlayerOutput.setText("️ Stop Loss reached!\nReset to continue.");
-                txtBankerOutput.setText("️ Stop Loss reached!\nReset to continue.");
 
             }
         }
@@ -816,7 +840,11 @@ public class HelloController {
 
     private void updateLockedOutputs() {
 
-        String msg = "All systems are complete.\nProceed to recovery.";
+
+
+        String msg = stoppedForProfit
+                ? "🎉 Well done! Reset to continue."
+                : "All systems are complete.\nProceed to recovery.";
 
         if (playerSystem.isSystemLocked()) {
             txtPlayerOutput.setText(msg);
@@ -826,16 +854,22 @@ public class HelloController {
             txtBankerOutput.setText(msg);
         }
     }
-    /**
-     * Reset both systems to their default plan/state.
-     */
+
     @FXML
     private void handleResetBoth() {
         runWithLoading(() -> {
             playerSystem.resetSystem();
             bankerSystem.resetSystem();
-            resetCompounding();
             applyPlan("500-1");
+            resetCompounding();
+
+
+
+            systemLockedTriggered = false;
+            stoppedForProfit = false;
+            stopLoss = 0.0;
+            stopProfit = 0.0;
+
             updateUI();
         });
     }
@@ -847,23 +881,54 @@ public class HelloController {
         if (statsPane != null) statsPane.setVisible(false);
     }
 
+    private void makeWindowDraggable(Stage stage, Region titleBar) {
+        final double[] offset = new double[2];
+        titleBar.setOnMousePressed(event -> {
+            offset[0] = event.getSceneX();
+            offset[1] = event.getSceneY();
+        });
+        titleBar.setOnMouseDragged(event -> {
+            stage.setX(event.getScreenX() - offset[0]);
+            stage.setY(event.getScreenY() - offset[1]);
+        });
+    }
 
-        private double getRecoveryStake() {
-            double baseStake = playerSystem.getBaseUnit();
-            return baseStake * 1.5;
-        }
+
+    private double getRecoveryStake() {
+        boolean bankerTab = tabPane != null && tabPane.getSelectionModel().getSelectedIndex() == 1;
+        if (bankerTab && trackingMode != TrackingMode.COMBINED) return bankerSystem.getNextBet();
+        return playerSystem.getNextBet();
+    }
 
     private void buildRecoveryGrid(int totalBoxes) {
-
-        recoveryGrid.getChildren().clear();
+        GridPane grid = recoveryWindowGrid != null ? recoveryWindowGrid : recoveryGrid;
+        grid.getChildren().clear();
+        grid.getColumnConstraints().clear();
+        grid.getRowConstraints().clear();
 
         int cols = (int) Math.ceil(Math.sqrt(totalBoxes));
+        int rows = (int) Math.ceil((double) totalBoxes / cols);
+        for (int col = 0; col < cols; col++) {
+            javafx.scene.layout.ColumnConstraints constraint = new javafx.scene.layout.ColumnConstraints();
+            constraint.setMinWidth(64);
+            constraint.setPercentWidth(100.0 / cols);
+            constraint.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().add(constraint);
+        }
+        for (int row = 0; row < rows; row++) {
+            javafx.scene.layout.RowConstraints constraint = new javafx.scene.layout.RowConstraints();
+            constraint.setMinHeight(48);
+            constraint.setPercentHeight(100.0 / rows);
+            constraint.setVgrow(Priority.ALWAYS);
+            grid.getRowConstraints().add(constraint);
+        }
 
         for (int i = 0; i < totalBoxes; i++) {
 
             Label box = new Label(String.valueOf(i + 1));
 
-            box.setMinSize(60, 60);
+            box.setMinSize(0, 0);
+            box.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
             box.setAlignment(Pos.CENTER);
 
             box.setStyle("-fx-background-color: #2a2a3a; -fx-text-fill: white;");
@@ -871,35 +936,102 @@ public class HelloController {
             int row = i / cols;
             int col = i % cols;
 
-            recoveryGrid.add(box, col, row);
+            grid.add(box, col, row);
         }
     }
     @FXML
     private void openRecoveryPit() {
-        runWithLoading(() -> {
-            if (recoveryPitOverlay == null) return;
+        if (recoveryStage != null && recoveryStage.isShowing()) {
+            recoveryStage.requestFocus();
+            return;
+        }
+        createRecoveryWindow();
+        double loss = Math.abs(playerSystem.getProfit() + bankerSystem.getProfit());
+        RecoveryPit.Risk risk = cmbRecoveryRisk.getValue();
+        recoveryPit.start(loss, risk);
+        buildRecoveryGrid(risk.getBoxes());
+        updateRecoveryUI();
+        recoveryStage.show();
+    }
 
-            boolean show = !recoveryPitOverlay.isVisible();
-            recoveryPitOverlay.setVisible(show);
+    private void createRecoveryWindow() {
+        recoveryStage = new Stage(StageStyle.UNDECORATED);
+        recoveryStage.setTitle("Recovery Pit");
+        recoveryStage.setMinWidth(360);
+        recoveryStage.setMinHeight(440);
+        recoveryStage.setResizable(true);
+        BorderPane root = new BorderPane();
+        root.setStyle("-fx-background-color: #181822; -fx-padding: 12;");
 
-            if (show) {
-                recoveryPitOverlay.toFront();
+        VBox top = new VBox(12);
+        HBox header = new HBox();
+        header.setStyle("-fx-background-color: rgba(255,255,255,0.08); -fx-padding: 8;");
+        Label title = new Label("Recovery Pit");
+        title.setStyle("-fx-font-size: 20px; -fx-text-fill: white; -fx-font-weight: bold;");
+        Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
+        Button close = new Button("X"); close.setOnAction(e -> recoveryStage.close());
+        header.getChildren().addAll(title, spacer, close);
+        Label loss = new Label(); loss.setStyle("-fx-text-fill: white;"); configureRecoveryInfoLabel(loss); lblRecoveryLoss = loss;
+        Label stake = new Label(); stake.setStyle("-fx-text-fill: white;"); configureRecoveryInfoLabel(stake); lblRecoveryStake = stake;
+        Label progress = new Label(); progress.setStyle("-fx-text-fill: white;"); configureRecoveryInfoLabel(progress); lblBoxProgress = progress;
+        ComboBox<RecoveryPit.Risk> risk = new ComboBox<>(FXCollections.observableArrayList(RecoveryPit.Risk.values()));
+        risk.setValue(cmbRecoveryRisk.getValue()); cmbRecoveryRisk = risk;
+        risk.setOnAction(e -> { recoveryPit.start(recoveryPit.getTotalLoss(), risk.getValue()); buildRecoveryGrid(risk.getValue().getBoxes()); updateRecoveryUI(); });
+        top.getChildren().addAll(header, loss, stake, risk, progress);
 
-                double loss = Math.abs(playerSystem.getBank() + bankerSystem.getBank());
-
-                RecoveryPit.Risk risk = cmbRecoveryRisk.getValue();
-
-                recoveryPit.start(loss, risk);
-
-                buildRecoveryGrid(risk.getBoxes());
-
-                updateRecoveryUI();
-            }
+        recoveryWindowGrid = new GridPane();
+        recoveryWindowGrid.setHgap(8);
+        recoveryWindowGrid.setVgap(8);
+        recoveryWindowGrid.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        ScrollPane gridScroll = new ScrollPane(recoveryWindowGrid);
+        gridScroll.setFitToWidth(true);
+        gridScroll.setFitToHeight(true);
+        gridScroll.setPannable(true);
+        gridScroll.setStyle("-fx-background: #181822; -fx-background-color: transparent;");
+        Button win = new Button("WIN"); win.setMaxWidth(Double.MAX_VALUE); win.getStyleClass().add("recovery-win"); win.setOnAction(e -> onRecoveryWin());
+        Button lossButton = new Button("LOSS"); lossButton.setMaxWidth(Double.MAX_VALUE); lossButton.getStyleClass().add("recovery-loss"); lossButton.setOnAction(e -> onRecoveryLoss());
+        recoveryWinButton = win;
+        recoveryLossButton = lossButton;
+        HBox actions = new HBox(12, win, lossButton); HBox.setHgrow(win, Priority.ALWAYS); HBox.setHgrow(lossButton, Priority.ALWAYS);
+        root.setTop(top);
+        root.setCenter(gridScroll);
+        root.setBottom(actions);
+        BorderPane.setMargin(gridScroll, new javafx.geometry.Insets(12, 0, 12, 0));
+        Scene scene = new Scene(root, 440, 560);
+        scene.getStylesheets().add(getClass().getResource("/com/example/baccarat/styles.css").toExternalForm());
+        recoveryStage.setScene(scene);
+        makeWindowDraggable(recoveryStage, header);
+        MainApp.installResizeHandles(recoveryStage, scene);
+        recoveryStage.setOnHidden(e -> {
+            recoveryWindowGrid = null;
+            recoveryWinButton = null;
+            recoveryLossButton = null;
         });
     }
-    private void updateRecoveryUI() {
 
-        lblRecoveryLoss.setText(String.format("Loss: £%.2f", recoveryPit.getTotalLoss()));
+    /** Allows the fixed recovery summary to remain visible in narrow windows. */
+    private void configureRecoveryInfoLabel(Label label) {
+        label.setMinWidth(0);
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setWrapText(true);
+    }
+    private void updateRecoveryUI() {
+        double remaining = Math.max(0, recoveryPit.getTotalBoxes() * recoveryPit.getBoxTarget()
+                - recoveryPit.getTotalRecovered());
+        if (remaining > 0) {
+            lblRecoveryLoss.setText(String.format(
+                    "Loss: £%.2f · %d x boxes, £%.2f each · Remaining: £%.2f",
+                    recoveryPit.getTotalLoss(), recoveryPit.getTotalBoxes(), recoveryPit.getBoxTarget(), remaining));
+        } else {
+            lblRecoveryLoss.setText(String.format(
+                    "Recovery complete: £0.00 · %d x boxes, £%.2f each",
+                    recoveryPit.getTotalBoxes(), recoveryPit.getBoxTarget()));
+        }
+
+
+        lblRecoveryLoss.setStyle(remaining > 0
+                ? "-fx-text-fill:#e74c3c; -fx-font-weight:bold;"
+                : "-fx-text-fill:#2ecc71; -fx-font-weight:bold;");
 
         lblBoxProgress.setText(
                 "Box " + recoveryPit.getCurrentBox() +
@@ -908,7 +1040,8 @@ public class HelloController {
 
         double target = recoveryPit.getBoxTarget();
 
-        for (Node node : recoveryGrid.getChildren()) {
+        GridPane grid = recoveryWindowGrid != null ? recoveryWindowGrid : recoveryGrid;
+        for (Node node : grid.getChildren()) {
 
             if (!(node instanceof Label box)) continue;
 
@@ -923,25 +1056,25 @@ public class HelloController {
 
             int boxNumber = index + 1;
 
-            // COMPLETED
+
             if (boxNumber < recoveryPit.getCurrentBox()) {
                 box.setText("✓");
                 box.setStyle("-fx-background-color:#2ecc71; -fx-text-fill:black;");
             }
 
-            // CURRENT BOX
+
             else if (boxNumber == recoveryPit.getCurrentBox()) {
 
                 double progress = recoveryPit.getCurrentProgress();
 
-                box.setText(String.format("%.0f / %.0f", progress, target));
+                box.setText(String.format("£%.2f / £%.2f", progress, target));
 
                 box.setStyle("-fx-background-color:#f1c40f; -fx-text-fill:black;");
             }
 
-            // FUTURE
+
             else {
-                box.setText(String.format("%.0f", target));
+                box.setText(String.format("£%.2f", target));
                 box.setStyle("-fx-background-color:#2a2a3a; -fx-text-fill:white;");
             }
         }
@@ -950,31 +1083,59 @@ public class HelloController {
     }
     @FXML
     private void onRecoveryWin() {
-
-        double stake = getRecoveryStake();
-
-        recoveryPit.applyWin(stake);
-
-        updateRecoveryUI();
-
-        if (recoveryPit.isComplete()) {
-            playerSystem.setSystemLocked(false);
-            bankerSystem.setSystemLocked(false);
-            recoveryPitOverlay.setVisible(false);
-
-        }
+        recordRecoveryResult(true);
     }
 
     @FXML
     private void onRecoveryLoss() {
-
-        double stake = getRecoveryStake();
-
-        recoveryPit.applyLoss(stake);
-
-        updateRecoveryUI();
+        recordRecoveryResult(false);
+    }
 
 
+    private void recordRecoveryResult(boolean win) {
+        if (recoveryWinButton == null || recoveryLossButton == null
+                || recoveryWinButton.isDisable() || recoveryLossButton.isDisable()) return;
+        showRecoveryActionFeedback(win);
+        runWithLoading(() -> {
+            double before = playerSystem.getBank() + bankerSystem.getBank();
+            playerSystem.setSystemLocked(false); bankerSystem.setSystemLocked(false);
+            boolean bankerTab = tabPane.getSelectionModel().getSelectedIndex() == 1;
+            if (bankerTab) {
+                if (win && trackingMode == TrackingMode.COMBINED) playerSystem.recordCombinedWin(0.95);
+                else if (win) bankerSystem.recordWin();
+                else if (trackingMode == TrackingMode.COMBINED) playerSystem.recordLoss();
+                else bankerSystem.recordLoss();
+            } else if (win) playerSystem.recordWin(); else playerSystem.recordLoss();
+            double change = Math.abs(playerSystem.getBank() + bankerSystem.getBank() - before);
+            if (win) recoveryPit.applyWin(change); else recoveryPit.applyLoss(change);
+            if (recoveryPit.isComplete()) {
+                systemLockedTriggered = false; stoppedForProfit = false;
+                updateRecoveryUI();
+
+
+                PauseTransition closeDelay = new PauseTransition(Duration.millis(450));
+                closeDelay.setOnFinished(e -> {
+                    if (recoveryStage != null) recoveryStage.close();
+                });
+                closeDelay.play();
+            } else {
+                playerSystem.setSystemLocked(true); bankerSystem.setSystemLocked(true);
+                updateRecoveryUI();
+                enableRecoveryButtons();
+            }
+        });
+    }
+
+    private void showRecoveryActionFeedback(boolean win) {
+        recoveryWinButton.setDisable(true);
+        recoveryLossButton.setDisable(true);
+        recoveryWinButton.setText(win ? "WIN ✓" : "WIN");
+        recoveryLossButton.setText(win ? "LOSS" : "LOSS ✓");
+    }
+
+    private void enableRecoveryButtons() {
+        if (recoveryWinButton != null) recoveryWinButton.setDisable(false);
+        if (recoveryLossButton != null) recoveryLossButton.setDisable(false);
     }
 
     private void updateRecoveryPitButton() {
@@ -988,7 +1149,7 @@ public class HelloController {
         if (btnRecoveryPitBank != null)
             btnRecoveryPitBank.setVisible(bankerLocked);
 
-        // 🔥 Hide "to recover" labels when locked
+
         if (lblPlayerRecovered != null)
             lblPlayerRecovered.setVisible(!playerLocked);
 
@@ -999,25 +1160,105 @@ public class HelloController {
 
     @FXML
     private void openCompoundingPlan() {
-
-        boolean show = !compoundingOverlay.isVisible();
-
-        compoundingOverlay.setVisible(show);
-
-        if (show) {
-
-            compoundingOverlay.toFront();
-
-            if (showCompoundingHelp) {
-
-                compoundingHelpOverlay.setVisible(true);
-                compoundingHelpOverlay.toFront();
-            }
-
-        } else {
-
-            compoundingHelpOverlay.setVisible(false);
+        if (compoundingStage != null && compoundingStage.isShowing()) {
+            compoundingStage.requestFocus();
+            return;
         }
+        createCompoundingWindow();
+        updateCurrentDay();
+        updateCompoundingLabels();
+        compoundingStage.show();
+    }
+
+    private void createCompoundingWindow() {
+        compoundingStage = new Stage(StageStyle.UNDECORATED);
+        compoundingStage.setTitle("Hit Man Compounding");
+        compoundingStage.setMinWidth(640);
+        compoundingStage.setMinHeight(420);
+        compoundingStage.setResizable(true);
+        VBox root = new VBox(12);
+        root.setStyle("-fx-background-color: #181822; -fx-padding: 12;");
+        root.setFillWidth(true);
+        HBox header = new HBox();
+        header.setStyle("-fx-background-color: rgba(255,255,255,0.08); -fx-padding: 8;");
+        header.setMaxWidth(Double.MAX_VALUE);
+        Label title = new Label("Hit Man Compounding"); title.setStyle("-fx-text-fill:white; -fx-font-size:18px; -fx-font-weight:bold;");
+        title.setMinWidth(0);
+        Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
+        Button close = new Button("X"); close.setOnAction(e -> compoundingStage.close());
+        header.getChildren().addAll(title, spacer, close);
+        TextField goalField = new TextField(String.format("%.2f", goal));
+        goalField.setMinWidth(80);
+        goalField.setPrefWidth(100);
+        goalField.setMaxWidth(110);
+        goalField.textProperty().addListener((obs, oldValue, newValue) -> {
+            goal = parseDouble(newValue, goal);
+
+
+            if (txtGoal != null && !txtGoal.getText().equals(newValue)) txtGoal.setText(newValue);
+            updateCurrentDay();
+            updateCompoundingLabels();
+        });
+        Label goalLabel = new Label("Goal (£)"); goalLabel.setStyle("-fx-text-fill:white;");
+        Label progress = new Label(); progress.setStyle("-fx-text-fill:white; -fx-font-weight:bold;");
+        progress.setMinWidth(0);
+        progress.setMaxWidth(Double.MAX_VALUE);
+        progress.setWrapText(true);
+        lblFullTotalProfit = progress;
+        HBox summary = new HBox(12, goalLabel, goalField, progress);
+        summary.setAlignment(Pos.CENTER_LEFT);
+        summary.setFillHeight(true);
+        HBox.setHgrow(progress, Priority.ALWAYS);
+        TableView<CompoundingDay> table = new TableView<>();
+        TableColumn<CompoundingDay, Integer> day = new TableColumn<>("Day");
+        TableColumn<CompoundingDay, Double> opening = moneyColumn("Opening (£)", "opening");
+        TableColumn<CompoundingDay, Double> dailyGoal = percentColumn("Daily target (%)", "dailyGoal");
+        TableColumn<CompoundingDay, Double> profit = moneyColumn("Profit / loss (£)", "profitLoss");
+        day.setCellValueFactory(new PropertyValueFactory<>("day"));
+        day.setMinWidth(55); day.setPrefWidth(65);
+        opening.setMinWidth(120); opening.setPrefWidth(135);
+        dailyGoal.setMinWidth(140); dailyGoal.setPrefWidth(165);
+        profit.setMinWidth(130); profit.setPrefWidth(155);
+        table.getColumns().addAll(day, opening, dailyGoal, profit);
+        table.setId("compoundingTableWindow");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setItems(compoundingData); compoundingWindowTable = table;
+        VBox.setVgrow(table, Priority.ALWAYS);
+        root.getChildren().addAll(header, summary, table);
+        Scene scene = new Scene(root, 700, 540);
+        scene.getStylesheets().add(getClass().getResource("/com/example/baccarat/styles.css").toExternalForm());
+        compoundingStage.setScene(scene);
+        makeWindowDraggable(compoundingStage, header);
+        MainApp.installResizeHandles(compoundingStage, scene);
+        compoundingStage.setOnHidden(e -> compoundingWindowTable = null);
+    }
+
+    private TableColumn<CompoundingDay, Double> moneyColumn(String title, String property) {
+        TableColumn<CompoundingDay, Double> column = new TableColumn<>(title);
+        column.setCellValueFactory(new PropertyValueFactory<>(property));
+        column.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(Double value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) { setText(null); setStyle(""); return; }
+                setText(String.format("£%.2f", value));
+                setStyle(value > 0 ? "-fx-text-fill:#2ecc71;" : value < 0 ? "-fx-text-fill:#e74c3c;" : "-fx-text-fill:white;");
+            }
+        });
+        return column;
+    }
+
+    private TableColumn<CompoundingDay, Double> percentColumn(String title, String property) {
+        TableColumn<CompoundingDay, Double> column = new TableColumn<>(title);
+        column.setCellValueFactory(new PropertyValueFactory<>(property));
+        column.setCellFactory(col -> new TableCell<CompoundingDay, Double>() {
+            @Override protected void updateItem(Double value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) { setText(null); setStyle(""); return; }
+                setText(String.format("%.2f%%", value));
+                setStyle(value > 0 ? "-fx-text-fill:#2ecc71;" : value < 0 ? "-fx-text-fill:#e74c3c;" : "-fx-text-fill:white;");
+            }
+        });
+        return column;
     }
 
     @FXML
@@ -1032,11 +1273,9 @@ public class HelloController {
         colDay.setResizable(false);
         colOpening.setResizable(false);
         colProfitLoss.setResizable(false);
-        colToGoal.setResizable(false);
         colDay.setCellValueFactory(new PropertyValueFactory<>("day"));
         colOpening.setCellValueFactory(new PropertyValueFactory<>("opening"));
         colProfitLoss.setCellValueFactory(new PropertyValueFactory<>("profitLoss"));
-        colToGoal.setCellValueFactory(new PropertyValueFactory<>("toGoal"));
         colDailyGoal.setCellValueFactory(new PropertyValueFactory<>("dailyGoal"));
 
         colProfitLoss.setCellFactory(col -> new TableCell<CompoundingDay, Double>() {
@@ -1045,29 +1284,25 @@ public class HelloController {
                 super.updateItem(value, empty);
                 if (empty || value == null) {
                     setText(null);
+                    setStyle("");
                 } else {
                     setText(String.format("%.2f", value));
+                    if (value > 0) {
+                        setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                    } else if (value == 0) {
+                        setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    }
                 }
             }
         });
 
-        colToGoal.setCellFactory(col -> new TableCell<CompoundingDay, Double>() {
-            @Override
-            protected void updateItem(Double value, boolean empty) {
-                super.updateItem(value, empty);
-                if (empty || value == null) {
-                    setText(null);
-                } else {
-                    setText(String.format("%.2f", value));
-                }
-            }
-        });
         colDailyGoal.setCellFactory(col -> new TableCell<CompoundingDay, Double>() {
             @Override
             protected void updateItem(Double value, boolean empty) {
                 super.updateItem(value, empty);
 
-                // 🔥 ALWAYS reset first
                 setText(null);
                 setStyle("");
 
@@ -1075,13 +1310,14 @@ public class HelloController {
                     return;
                 }
 
-                setText(String.format("%.2f", value));
+                setText(String.format("%.2f%%", value));
 
                 CompoundingDay row = getTableView().getItems().get(getIndex());
 
                 double actual = row.getOpening() + row.getProfitLoss();
+                double threshold = row.getOpening() * (1 + value / 100.0);
 
-                if (actual >= value) {
+                if (actual >= threshold) {
                     setStyle("-fx-text-fill: #2ecc71;");
                 }
             }
@@ -1098,20 +1334,23 @@ public class HelloController {
             current.setOpening(setBank);
             bankWasManuallySet = false;
         }
+
         double start = compoundingData.get(0).getOpening();
-        dailyRate = calculateDailyRate(start, goal, compoundingDays);
+        double target = start + goal;
+        dailyRate = calculateDailyRate(start, target, compoundingDays);
 
         double totalBank = playerSystem.getBank() + bankerSystem.getBank();
-        double profit = totalBank - current.getOpening();
+        double dayProfit = totalBank - current.getOpening();
+        current.setProfitLoss(dayProfit);
 
-        current.setProfitLoss(profit);
-        current.setToGoal(goal - totalBank);
+        double overallProfit = totalBank - start;
+        current.setToGoal(goal - overallProfit);
 
-
-        double dailyGoal = current.getOpening() * (1 + dailyRate);
+        double dailyGoal = dailyRate * 100.0;
         current.setDailyGoal(dailyGoal);
 
         compoundingTable.refresh();
+        if (compoundingWindowTable != null) compoundingWindowTable.refresh();
     }
     public void startNewDay() {
 
@@ -1123,9 +1362,9 @@ public class HelloController {
     }
     private void completeDay() {
 
-        updateCurrentDay(); // finalize last day
+        updateCurrentDay();
 
-        // Next session starts fresh day
+
         startNewDay();
     }
 
@@ -1150,10 +1389,11 @@ public class HelloController {
 
         setBank = totalBank;
 
-        // Start again from Day 1
+
         compoundingData.add(new CompoundingDay(1, totalBank));
 
         compoundingTable.refresh();
+        if (compoundingWindowTable != null) compoundingWindowTable.refresh();
 
         updateCompoundingLabels();
 
@@ -1172,36 +1412,26 @@ public class HelloController {
 
         double totalBank = playerSystem.getBank() + bankerSystem.getBank();
 
-        // Set goal from textbox
         if (txtGoal != null && !txtGoal.getText().isEmpty()) {
             goal = parseDouble(txtGoal.getText(), goal);
         }
 
+        if (compoundingData.isEmpty()) return;
+
+        double startingBank = compoundingData.get(0).getOpening();
+        double profit = totalBank - startingBank;
+        double remaining = goal - profit;
 
 
-        // Start balance = first day opening
-        if (!compoundingData.isEmpty()) {
-            CompoundingDay startDay = compoundingData.get(0);
-            double start = startDay.getOpening();
-            lblStartBalance.setText(String.format("Start:\n $%.2f", start));
-            setLabelColor(lblStartBalance, 0);
-        }
 
-        // Current balance
-        lblCurrentBalance.setText(String.format("Current:\n $%.2f", totalBank));
-        setLabelColor(lblCurrentBalance, 0);
-
-        // Total profit
-        if (!compoundingData.isEmpty()) {
-            double start = setBank;
-            double profit = totalBank - start;
-            lblFullTotalProfit.setText(String.format("Profit:\n $%.2f", profit));
-            setLabelColor(lblFullTotalProfit, profit);
+        if (lblFullTotalProfit != null) {
+            lblFullTotalProfit.setText(String.format(
+                    "Progress:\n £%.2f (£%.2f remaining)",
+                    totalBank, remaining));
+            setLabelColor(lblFullTotalProfit, remaining <= 0 ? 1 : (profit < 0 ? -1 : 0));
         }
     }
-    /**
-     * Save application-level data (systems) to separate files.
-     */
+
     @FXML
     private void handleSaveApp() {
         runWithLoading(() -> {
@@ -1217,10 +1447,7 @@ public class HelloController {
     }
 
 
-    /**
-     * Toggle settings pane visibility. When closing, auto-save any values
-     * typed into the unified settings fields.
-     */
+
     @FXML
     private void toggleSettings() {
         runWithLoading(() -> {
@@ -1243,7 +1470,7 @@ public class HelloController {
         runWithLoading(() -> {
 
             if (settingsPane != null && settingsPane.isVisible()) {
-                // Only save if fields have text
+
 
                 handleSaveSettings();
 
@@ -1265,7 +1492,7 @@ public class HelloController {
 
 
 
-    // === Utility / UI update methods ===
+
 
     private double parseDouble(String text, double fallback) {
         try {
@@ -1283,10 +1510,14 @@ public class HelloController {
         updateTotals();
         updateStats();
         updateStopLimitsFromSystem();
-        // ensure stop labels updated (both baseline and running)
-        updateRecoveryPitButton();
         updateStopLabels();
         updatePointStatsDisplay();
+
+
+
+
+        updateRecoveryPitButton();
+
         updateCurrentDay();
         updateCompoundingLabels();
         updateFieldPrompts();
@@ -1430,9 +1661,7 @@ public class HelloController {
         );
     }
 
-    /**
-     * Shows remaining recovery in white 0.00 when nothing to recover, or as negative red amount while recovering.
-     */
+
     private void setRecoveredLabel(Label label, double remainingToRecover) {
         double eps = 1e-9;
         if (remainingToRecover <= eps) {
@@ -1444,9 +1673,7 @@ public class HelloController {
         }
     }
 
-    /**
-     * Update pie charts and percentage labels.
-     */
+
     public void updatePieChart() {
         int totalWins = playerSystem.getTotalWins() + bankerSystem.getTotalWins();
         int totalLosses = playerSystem.getTotalLosses() + bankerSystem.getTotalLosses();
@@ -1471,16 +1698,16 @@ public class HelloController {
         lblLossPct.setText(total > 0 ? String.format("%.1f%%", totalLosses * 100.0 / total) : "0%");
         lblPlayerWinPct.setText(playerSystem.getTotalWins() + playerSystem.getTotalLosses() > 0
                 ? String.format("%.1f%%", playerSystem.getTotalWins() * 100.0 /
-                (playerSystem.getTotalWins() + playerSystem.getTotalLosses())) : "0%");
+                                          (playerSystem.getTotalWins() + playerSystem.getTotalLosses())) : "0%");
         lblPlayerLossPct.setText(playerSystem.getTotalWins() + playerSystem.getTotalLosses() > 0
                 ? String.format("%.1f%%", playerSystem.getTotalLosses() * 100.0 /
-                (playerSystem.getTotalWins() + playerSystem.getTotalLosses())) : "0%");
+                                          (playerSystem.getTotalWins() + playerSystem.getTotalLosses())) : "0%");
         lblBankerWinPct.setText(bankerSystem.getTotalWins() + bankerSystem.getTotalLosses() > 0
                 ? String.format("%.1f%%", bankerSystem.getTotalWins() * 100.0 /
-                (bankerSystem.getTotalWins() + bankerSystem.getTotalLosses())) : "0%");
+                                          (bankerSystem.getTotalWins() + bankerSystem.getTotalLosses())) : "0%");
         lblBankerLossPct.setText(bankerSystem.getTotalWins() + bankerSystem.getTotalLosses() > 0
                 ? String.format("%.1f%%", bankerSystem.getTotalLosses() * 100.0 /
-                (bankerSystem.getTotalWins() + bankerSystem.getTotalLosses())) : "0%");
+                                          (bankerSystem.getTotalWins() + bankerSystem.getTotalLosses())) : "0%");
 
         Platform.runLater(() -> {
             stylePieChart(pieChart);
@@ -1511,15 +1738,13 @@ public class HelloController {
         Platform.runLater(() -> separator.pseudoClassStateChanged(POSITIVE, value > 0));
     }
 
-    /**
-     * Update all stats display. Uses counts to compute "combined total" while ignoring sides with zero trials.
-     */
+
     private void updateStats() {
-        // Helper: return average of rates ignoring sides with count == 0.
-        java.util.function.BiFunction<Double, Integer, Boolean> dummy = (d, i) -> true; // placeholder no-op
+
+        java.util.function.BiFunction<Double, Integer, Boolean> dummy = (d, i) -> true;
 
         java.util.function.BiFunction<Double, Double, Double> safeAverage = (a, b) -> {
-            // This version is retained for fallback but we'll compute below using counts.
+
             boolean aValid = !Double.isNaN(a) && a > 0;
             boolean bValid = !Double.isNaN(b) && b > 0;
             if (aValid && bValid) return (a + b) / 2.0;
@@ -1528,7 +1753,7 @@ public class HelloController {
             return 0.0;
         };
 
-        // First Bet (use counts to decide)
+
         double firstTotal;
         int pFirstCount = playerSystem.getFirstBetCount();
         int bFirstCount = bankerSystem.getFirstBetCount();
@@ -1546,7 +1771,7 @@ public class HelloController {
                 playerSystem.getFirstBetWinRate(),
                 bankerSystem.getFirstBetWinRate());
 
-        // Second Bet
+
         double secondTotal;
         int pSecondCount = playerSystem.getSecondBetCount();
         int bSecondCount = bankerSystem.getSecondBetCount();
@@ -1564,7 +1789,7 @@ public class HelloController {
                 playerSystem.getSecondBetWinRate(),
                 bankerSystem.getSecondBetWinRate());
 
-        // Stage 1
+
         double stage1Total;
         int pStage1 = playerSystem.getStageCount(0);
         int bStage1 = bankerSystem.getStageCount(0);
@@ -1582,7 +1807,7 @@ public class HelloController {
                 playerSystem.getStageWinRate(0),
                 bankerSystem.getStageWinRate(0));
 
-        // Stage 2
+
         double stage2Total;
         int pStage2 = playerSystem.getStageCount(1);
         int bStage2 = bankerSystem.getStageCount(1);
@@ -1600,7 +1825,7 @@ public class HelloController {
                 playerSystem.getStageWinRate(1),
                 bankerSystem.getStageWinRate(1));
 
-        // Stage 3
+
         double stage3Total;
         int pStage3 = playerSystem.getStageCount(2);
         int bStage3 = bankerSystem.getStageCount(2);
@@ -1618,7 +1843,7 @@ public class HelloController {
                 playerSystem.getStageWinRate(2),
                 bankerSystem.getStageWinRate(2));
 
-        // Streaks (sum for total)
+
         updateStatsStreakDisplay(lblWinStreakTotal, lblWinStreakPlayer, lblWinStreakBanker,
                 playerSystem.getMaxWinStreak() + bankerSystem.getMaxWinStreak(),
                 playerSystem.getMaxWinStreak(),
@@ -1637,8 +1862,8 @@ public class HelloController {
         if (banker != null) banker.setText(String.format("%.1f%%", bankerVal));
 
         if (total != null) total.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
-        if (player != null) player.setStyle("-fx-text-fill: #2196F3; -fx-font-weight: bold;");  // blue
-        if (banker != null) banker.setStyle("-fx-text-fill: #F44336; -fx-font-weight: bold;"); // red
+        if (player != null) player.setStyle("-fx-text-fill: #2196F3; -fx-font-weight: bold;");
+        if (banker != null) banker.setStyle("-fx-text-fill: #F44336; -fx-font-weight: bold;");
     }
 
     private void updateStatsStreakDisplay(Label total, Label player, Label banker,
@@ -1652,9 +1877,7 @@ public class HelloController {
         if (banker != null) banker.setStyle("-fx-text-fill: #F44336; -fx-font-weight: bold;");
     }
 
-    /**
-     * Runs an action while showing the loading overlay briefly, then updates UI.
-     */
+
     private void runWithLoading(Runnable action) {
         if (loadingOverlay != null) {
             loadingOverlay.toFront();
