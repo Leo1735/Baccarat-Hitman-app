@@ -1214,7 +1214,13 @@ public class HelloController {
         goalField.setPrefWidth(100);
         goalField.setMaxWidth(110);
         progress.setWrapText(true);
-        progress.setMaxWidth(Double.MAX_VALUE);
+        // Bind the progress label max width to remaining space in the HBox so it wraps instead of ellipsizing
+        progress.maxWidthProperty().bind(
+                summary.widthProperty()
+                        .subtract(goalLabel.widthProperty())
+                        .subtract(goalField.widthProperty())
+                        .subtract(40)
+        );
         HBox.setHgrow(progress, Priority.ALWAYS);
         HBox.setHgrow(goalField, Priority.NEVER);
         TableView<CompoundingDay> table = new TableView<>();
