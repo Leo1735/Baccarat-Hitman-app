@@ -8,6 +8,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.Cursor;
+import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
@@ -48,11 +49,19 @@ public class MainApp extends Application {
         primaryStage.setTitle("Kevin's 500-1 Baccarat Plan");
         primaryStage.setScene(scene);
         primaryStage.initStyle(StageStyle.UNDECORATED);
-        primaryStage.setMinWidth(260);
+        primaryStage.setMinWidth(350);
         primaryStage.setMinHeight(400);
         primaryStage.setResizable(true);
         installResizeHandles(primaryStage, scene);
         primaryStage.setAlwaysOnTop(true);
+        
+        try {
+            Image icon = new Image(getClass().getResourceAsStream("/com/example/baccarat/logo.png"));
+            primaryStage.getIcons().add(icon);
+        } catch (Exception e) {
+            System.out.println("Logo not found, proceeding without icon");
+        }
+        
         primaryStage.show();
 
 

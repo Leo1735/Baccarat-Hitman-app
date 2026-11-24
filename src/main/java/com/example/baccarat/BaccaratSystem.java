@@ -389,7 +389,14 @@ public class BaccaratSystem {
         updateUIState();
     }
 
+    public void applyDirectBankChange(double amount) {
+        bank.set(bank.get() + amount);
+    }
 
+    /** Applies the completed recovery amount to the displayed profit without altering cash again. */
+    public void applyRecoveryProfit(double amount) {
+        profit.set(profit.get() + amount);
+    }
 
     public void undo() {
         if (!history.isEmpty()) {
@@ -791,6 +798,12 @@ public class BaccaratSystem {
             return null;
         }
     }
+    public void unlockAndResetStages() {
+        systemLocked = false;
+        stageIndex = 0;
+        for (StageData s : stages) s.reset();
+        updateUIState();
+    }
     public int getCurrentBetIndex() {
         return stages[stageIndex].currentIndex;
     }
@@ -803,5 +816,4 @@ public class BaccaratSystem {
         systemLocked = locked;
     }
 }
-
 

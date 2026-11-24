@@ -1,104 +1,115 @@
 package com.example.baccarat;
 
-/** Maintains the dynamically recalculated recovery plan independently of the UI. */
-public class RecoveryPit {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/** Implements the hybrid recovery queue from the supplied calculator specification. */
+public class RecoveryPit implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public enum Risk {
         HIGH(6), MEDIUM(10), LOW(14);
 
         private final int boxes;
-
-        Risk(int boxes) {
-            this.boxes = boxes;
-        }
-
-        public int getBoxes() {
-            return boxes;
-        }
+        Risk(int boxes) { this.boxes = boxes; }
+        public int getBoxes() { return boxes; }
     }
 
-    private double totalLoss;
-    private Risk risk;
-    private int currentBox;
-    private double currentProgress;
-    private double boxTarget;
-    private double recoveredAmount;
+    public record LossResult(boolean safetyValveTriggered, int boxesAdded, int totalBoxes) { }
+
+    private static final int MIN_POINTS = 20;
+    private static final int MAX_POINTS = 60;
+    private final List<Double> activeBoxes = new ArrayList<>();
+    private double initialLoss;
+    private double recoveredLiability;
+    private double recommendedStake;
+    private double pointTarget = MIN_POINTS;
+    private double maxStake = 50.0;
 
     public void start(double loss, Risk risk) {
-
-        this.totalLoss = Math.max(loss, 0.01);
-        this.risk = risk;
-        this.currentBox = 1;
-        this.currentProgress = 0;
-        this.recoveredAmount = 0;
-        recalculateBoxTarget();
+        start(loss, risk, pointTarget, maxStake);
     }
 
-    public void applyWin(double amount) {
-
-        recoveredAmount += Math.max(amount, 0);
-        updateBoxProgress();
+    public void start(double loss, Risk risk, double pointTarget, double maxStake) {
+        initialLoss = Math.max(loss, 0.0);
+        this.pointTarget = clamp(pointTarget, MIN_POINTS, MAX_POINTS);
+        this.maxStake = Math.max(maxStake, 0.01);
+        recoveredLiability = 0.0;
+        activeBoxes.clear();
+        int count = risk == null ? Risk.MEDIUM.getBoxes() : risk.getBoxes();
+        if (initialLoss <= 0) return;
+        double share = initialLoss / count;
+        for (int i = 0; i < count; i++) activeBoxes.add(share);
+        refreshRecommendedStake();
     }
 
-    public void applyLoss(double amount) {
+    /** A winning hand reduces the first active box; only a fully cleared box disperses. */
+    public void applyWin(double stake) {
+        if (activeBoxes.isEmpty()) return;
+        double amount = Math.max(stake, 0.0);
+        double remainingInBox = activeBoxes.get(0);
+        double cleared = Math.min(amount, remainingInBox);
+        recoveredLiability += cleared;
 
-
-
-        totalLoss += Math.max(amount, 0);
-        recalculateBoxTarget();
-        updateBoxProgress();
+        if (remainingInBox - cleared <= 0.0000001) {
+            activeBoxes.remove(0);
+            refreshRecommendedStake();
+        } else {
+            activeBoxes.set(0, remainingInBox - cleared);
+        }
     }
 
-    public boolean isComplete() {
-        return recoveredAmount >= risk.getBoxes() * boxTarget;
+    /** Redistributes a lost wager, then expands the queue if the stake cap is breached. */
+    public LossResult applyLoss(double amount) {
+        if (activeBoxes.isEmpty()) return new LossResult(false, 0, 0);
+        double burden = Math.max(amount, 0.0) / activeBoxes.size();
+        for (int i = 0; i < activeBoxes.size(); i++) {
+            activeBoxes.set(i, activeBoxes.get(i) + burden);
+        }
+        refreshRecommendedStake();
+        if (getRecommendedStake() <= maxStake + 0.0000001) {
+            return new LossResult(false, 0, activeBoxes.size());
+        }
+        double remaining = getRemainingDrawdown();
+        int required = Math.max(activeBoxes.size(), (int) Math.ceil(remaining / (maxStake * (pointTarget / 10.0))));
+        int added = required - activeBoxes.size();
+        if (added > 0) {
+            activeBoxes.clear();
+            double share = remaining / required;
+            for (int i = 0; i < required; i++) activeBoxes.add(share);
+            refreshRecommendedStake();
+        }
+        return new LossResult(added > 0, added, activeBoxes.size());
     }
 
-    public double getBoxTarget() {
-        return boxTarget;
-    }
+    public boolean isComplete() { return activeBoxes.isEmpty(); }
+    public double getBoxTarget() { return getRecommendedStake(); }
+    public double getRecommendedStake() { return activeBoxes.isEmpty() ? 0.0 : recommendedStake; }
+    public int getCurrentBox() { return activeBoxes.isEmpty() ? 0 : 1; }
+    public int getTotalBoxes() { return activeBoxes.size(); }
+    public double getCurrentProgress() { return 0.0; }
+    public double getRemainingInBox() { return activeBoxes.isEmpty() ? 0.0 : activeBoxes.get(0); }
+    public double getTotalLoss() { return initialLoss; }
+    public double getRemainingDrawdown() { return activeBoxes.stream().mapToDouble(Double::doubleValue).sum(); }
+    /** Total liability cleared by recovery wins, including redistributed losses. */
+    public double getTotalRecovered() { return recoveredLiability; }
+    public double getPointTarget() { return pointTarget; }
+    public double getMaxStake() { return maxStake; }
+    public List<Double> getActiveBoxes() { return Collections.unmodifiableList(activeBoxes); }
 
-    public int getCurrentBox() {
-        return currentBox;
-    }
-
-    public int getTotalBoxes() {
-        return risk.getBoxes();
-    }
-
-    public double getCurrentProgress() {
-        return currentProgress;
-    }
-
-    public double getRemainingInBox() {
-        return Math.max(0, boxTarget - currentProgress);
-    }
-
-    public double getTotalLoss() {
-        return totalLoss;
-    }
-
-    public double getProgressPercent() {
-        return currentProgress / boxTarget;
-    }
-
-    public double getTotalRecovered() {
-        return recoveredAmount;
-    }
-
-    private void recalculateBoxTarget() {
-
-
-        boxTarget = Math.ceil(totalLoss / risk.getBoxes());
-    }
-
-    private void updateBoxProgress() {
-        int completedBoxes = (int) Math.floor(recoveredAmount / boxTarget);
-        if (completedBoxes >= risk.getBoxes()) {
-            currentBox = risk.getBoxes();
-            currentProgress = boxTarget;
+    private void refreshRecommendedStake() {
+        if (activeBoxes.isEmpty()) {
+            recommendedStake = 0.0;
             return;
         }
-        currentBox = completedBoxes + 1;
-        currentProgress = recoveredAmount - completedBoxes * boxTarget;
+        double rawStake = activeBoxes.get(0) / (pointTarget / 10.0);
+        recommendedStake = Math.ceil(rawStake * 10.0 - 0.0000001) / 10.0;
+    }
+
+    private static double clamp(double value, double min, double max) {
+        if (!Double.isFinite(value)) return min;
+        return Math.max(min, Math.min(max, value));
     }
 }

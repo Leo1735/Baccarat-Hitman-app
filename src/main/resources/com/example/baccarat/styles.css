@@ -43,37 +43,36 @@
 
 
 .tab-pane .tab-header-area .headers-region .tab {
-    -fx-pref-width: 130;
-    -fx-max-width: 300;
     -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 8 0 8 0;   /* pick whatever vertical padding you want, just make it explicit */
+    -fx-effect: none;
 }
 
+.tab-pane .tab-header-area .headers-region .tab:selected {
+    -fx-background-insets: 0;
+    -fx-padding: 8 0 8 0;   /* must match the unselected rule exactly */
+    -fx-effect: none;
+}
+
+.tab#player:selected {
+    -fx-background-color: #244dff;
+}
+
+.tab#banker:selected {
+    -fx-background-color: #d23a3a;
+}
 
 .tab-header-background {
     -fx-background-color: transparent;
 }
 
 .tab-label {
-    -fx-text-fill: #8f8fa3;
+    -fx-text-fill: white;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
-.tab#player:selected {
-    -fx-background-color: #244dff;
-}
 
-.tab#player:selected .tab-label {
-    -fx-text-fill: white;
-}
-
-
-.tab#banker:selected {
-    -fx-background-color: #d23a3a;
-}
-
-.tab#banker:selected .tab-label {
-    -fx-text-fill: white;
-}
 
 
 .tab:selected {
@@ -108,7 +107,9 @@
 
 
 .tab-content {
+    -fx-pref-width: Infinity;
     -fx-max-width: Infinity;
+    -fx-min-width: 300;
 }
 
 .stats-title {

@@ -2,6 +2,7 @@ package com.example.baccarat;
 
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
@@ -162,6 +163,10 @@ public class HelloController {
     private TableView<CompoundingDay> compoundingWindowTable;
     private Button recoveryWinButton;
     private Button recoveryLossButton;
+    private BaccaratSystem recoverySystem;
+    private final File recoveryFile = new File("baccarat_recovery.dat");
+    private boolean recoveryActive = false;
+    private double synchronizedMainStake = 0.0;
 
 
     @FXML
@@ -197,7 +202,12 @@ public class HelloController {
         }
 
 
-
+        int tabCount = tabPane.getTabs().size();
+        if (tabCount > 0) {
+            var tabWidth = Bindings.max(0, tabPane.widthProperty().subtract(2).divide(tabCount));
+            tabPane.tabMinWidthProperty().bind(tabWidth);
+            tabPane.tabMaxWidthProperty().bind(tabWidth);
+        }
 
         if (playerFile.exists() && bankerFile.exists()) {
 
@@ -280,6 +290,8 @@ public class HelloController {
                 f.printStackTrace();
             }
 
+            saveRecoveryState();
+
             BaccaratSystem.saveControllerSettings(
                     settingsFile,
                     pointValue,
@@ -293,7 +305,10 @@ public class HelloController {
             Platform.exit();
         });
 
-        exitNoSaveBtn.setOnAction(e -> Platform.exit());
+        exitNoSaveBtn.setOnAction(e -> {
+            saveRecoveryState();
+            Platform.exit();
+        });
 
         exitCancelBtn.setOnAction(e -> exitOverlay.setVisible(false));
 
@@ -355,9 +370,19 @@ public class HelloController {
 
             recoveryPit.start(recoveryPit.getTotalLoss(), risk);
 
-            buildRecoveryGrid(risk.getBoxes());
+            buildRecoveryGrid(recoveryPit.getTotalBoxes());
             updateRecoveryUI();
+            saveRecoveryState();
         });
+
+        loadRecoveryState();
+        if (recoveryActive) {
+            playerSystem.setSystemLocked(false);
+            bankerSystem.setSystemLocked(false);
+            updateUI();
+            updateRecoveryPitButton();
+            Platform.runLater(() -> openRecoveryPit());
+        }
     }
 
     /** Uses a vector icon so the undo arrow is independent of installed fonts. */
@@ -428,6 +453,7 @@ public class HelloController {
 
             updateStopLimitsFromSystem();
             updateUI();
+            syncRecoveryFromMain(true);
         });
     }
 
@@ -447,6 +473,7 @@ public class HelloController {
 
             updateStopLimitsFromSystem();
             updateUI();
+            syncRecoveryFromMain(false);
         });
     }
 
@@ -466,6 +493,7 @@ public class HelloController {
 
             updateStopLimitsFromSystem();
             updateUI();
+            syncRecoveryFromMain(true);
         });
     }
 
@@ -485,6 +513,7 @@ public class HelloController {
 
             updateStopLimitsFromSystem();
             updateUI();
+            syncRecoveryFromMain(false);
         });
     }
 
@@ -706,6 +735,7 @@ public class HelloController {
 
             updateStopLabels();
             updateUI();
+            syncRecoveryStakeFromMain();
             updateFieldPrompts();
         });
     }
@@ -724,6 +754,7 @@ public class HelloController {
         bankerSystem.setBankDirect(bank);
 
         updateUI();
+        syncRecoveryStakeFromMain();
         updatePointStatsDisplay();
     }
 
@@ -895,16 +926,20 @@ public class HelloController {
 
 
     private double getRecoveryStake() {
-        boolean bankerTab = tabPane != null && tabPane.getSelectionModel().getSelectedIndex() == 1;
-        if (bankerTab && trackingMode != TrackingMode.COMBINED) return bankerSystem.getNextBet();
-        return playerSystem.getNextBet();
+        return recoveryPit.getRecommendedStake();
     }
-
     private void buildRecoveryGrid(int totalBoxes) {
         GridPane grid = recoveryWindowGrid != null ? recoveryWindowGrid : recoveryGrid;
         grid.getChildren().clear();
         grid.getColumnConstraints().clear();
         grid.getRowConstraints().clear();
+
+        if (totalBoxes == 0) {
+            Label complete = new Label("All recovery boxes cleared");
+            complete.setStyle("-fx-text-fill: #2ecc71; -fx-font-weight: bold;");
+            grid.add(complete, 0, 0);
+            return;
+        }
 
         int cols = (int) Math.ceil(Math.sqrt(totalBoxes));
         int rows = (int) Math.ceil((double) totalBoxes / cols);
@@ -925,13 +960,14 @@ public class HelloController {
 
         for (int i = 0; i < totalBoxes; i++) {
 
-            Label box = new Label(String.valueOf(i + 1));
+            double liability = recoveryPit.getActiveBoxes().get(i);
+            Label box = new Label(String.format("Box %d\n£%.2f", i + 1, liability));
 
             box.setMinSize(0, 0);
             box.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
             box.setAlignment(Pos.CENTER);
 
-            box.setStyle("-fx-background-color: #2a2a3a; -fx-text-fill: white;");
+            box.setStyle("-fx-background-color: #2a2a3a; -fx-text-fill: white; -fx-font-weight: bold;");
 
             int row = i / cols;
             int col = i % cols;
@@ -939,6 +975,66 @@ public class HelloController {
             grid.add(box, col, row);
         }
     }
+    private void saveRecoveryState() {
+        if (!recoveryActive) {
+            recoveryFile.delete();
+            return;
+        }
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(recoveryFile))) {
+            out.writeBoolean(recoveryActive);
+            out.writeDouble(synchronizedMainStake);
+            out.writeObject(recoveryPit);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void syncRecoveryFromMain(boolean win) {
+        if (!recoveryActive) return;
+        synchronizedMainStake = playerSystem.getBaseUnit();
+        double stake = synchronizedMainStake > 0 ? synchronizedMainStake : getRecoveryStake();
+        if (win) recoveryPit.applyWin(stake); else recoveryPit.applyLoss(stake);
+
+        if (recoveryPit.isComplete()) {
+            BaccaratSystem sys = recoverySystem == null ? playerSystem : recoverySystem;
+            sys.applyRecoveryProfit(recoveryPit.getTotalRecovered());
+            recoveryActive = false;
+            recoveryFile.delete();
+            if (recoveryStage != null) recoveryStage.close();
+        } else {
+            saveRecoveryState();
+        }
+
+        if (recoveryWindowGrid != null) buildRecoveryGrid(recoveryPit.getTotalBoxes());
+        updateRecoveryUI();
+        updateRecoveryPitButton();
+    }
+
+    private void syncRecoveryStakeFromMain() {
+        synchronizedMainStake = playerSystem.getBaseUnit();
+        if (lblRecoveryStake != null) updateRecoveryUI();
+        saveRecoveryState();
+    }
+
+    private void loadRecoveryState() {
+        if (!recoveryFile.exists()) return;
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(recoveryFile))) {
+            recoveryActive = in.readBoolean();
+            synchronizedMainStake = in.readDouble();
+            Object state = in.readObject();
+            if (state instanceof RecoveryPit restored && !restored.isComplete()) {
+                recoveryPit = restored;
+                recoveryActive = true;
+            } else {
+                recoveryActive = false;
+                recoveryFile.delete();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            recoveryActive = false;
+        }
+    }
+
     @FXML
     private void openRecoveryPit() {
         if (recoveryStage != null && recoveryStage.isShowing()) {
@@ -948,9 +1044,26 @@ public class HelloController {
         createRecoveryWindow();
         double loss = Math.abs(playerSystem.getProfit() + bankerSystem.getProfit());
         RecoveryPit.Risk risk = cmbRecoveryRisk.getValue();
-        recoveryPit.start(loss, risk);
-        buildRecoveryGrid(risk.getBoxes());
+        boolean bankerTab = tabPane.getSelectionModel().getSelectedIndex() == 1;
+        recoverySystem = (bankerTab && trackingMode != TrackingMode.COMBINED) ? bankerSystem : playerSystem;
+        boolean startingRecovery = !recoveryActive;
+        recoveryActive = true;
+        playerSystem.setSystemLocked(false);
+        bankerSystem.setSystemLocked(false);
+        synchronizedMainStake = playerSystem.getBaseUnit();
+        if (startingRecovery) {
+            recoveryPit.start(loss, risk);
+        }
+        saveRecoveryState();
+        buildRecoveryGrid(recoveryPit.getTotalBoxes());
         updateRecoveryUI();
+
+        javafx.stage.Window owner = recoveryGrid != null && recoveryGrid.getScene() != null
+                ? recoveryGrid.getScene().getWindow() : null;
+        if (owner instanceof Stage mainStage) {
+            recoveryStage.setX(mainStage.getX() + mainStage.getWidth() + 10);
+            recoveryStage.setY(mainStage.getY());
+        }
         recoveryStage.show();
     }
 
@@ -976,8 +1089,32 @@ public class HelloController {
         Label progress = new Label(); progress.setStyle("-fx-text-fill: white;"); configureRecoveryInfoLabel(progress); lblBoxProgress = progress;
         ComboBox<RecoveryPit.Risk> risk = new ComboBox<>(FXCollections.observableArrayList(RecoveryPit.Risk.values()));
         risk.setValue(cmbRecoveryRisk.getValue()); cmbRecoveryRisk = risk;
-        risk.setOnAction(e -> { recoveryPit.start(recoveryPit.getTotalLoss(), risk.getValue()); buildRecoveryGrid(risk.getValue().getBoxes()); updateRecoveryUI(); });
-        top.getChildren().addAll(header, loss, stake, risk, progress);
+        TextField maxStake = new TextField(String.format("%.2f", recoveryPit.getMaxStake()));
+        TextField points = new TextField(String.format("%.0f", recoveryPit.getPointTarget()));
+        maxStake.setPrefColumnCount(7);
+        points.setPrefColumnCount(5);
+        Button applySettings = new Button("Apply");
+        applySettings.setOnAction(e -> {
+            double maximum = parseDouble(maxStake.getText(), recoveryPit.getMaxStake());
+            double target = parseDouble(points.getText(), recoveryPit.getPointTarget());
+            recoveryPit.start(recoveryPit.getTotalLoss(), risk.getValue(), target, maximum);
+            maxStake.setText(String.format("%.2f", recoveryPit.getMaxStake()));
+            points.setText(String.format("%.0f", recoveryPit.getPointTarget()));
+            buildRecoveryGrid(recoveryPit.getTotalBoxes());
+            updateRecoveryUI();
+        });
+        risk.setOnAction(e -> {
+            recoveryPit.start(recoveryPit.getTotalLoss(), risk.getValue());
+            buildRecoveryGrid(recoveryPit.getTotalBoxes());
+            updateRecoveryUI();
+        });
+        GridPane controls = new GridPane();
+        controls.setHgap(8); controls.setVgap(6);
+        controls.addRow(0, new Label("Risk tier"), risk, new Label("Max stake"), maxStake);
+        controls.addRow(1, new Label("Points (20–60)"), points, applySettings);
+        controls.getChildren().stream().filter(node -> node instanceof Label)
+                .forEach(node -> node.setStyle("-fx-text-fill: white;"));
+        top.getChildren().addAll(header, loss, stake, controls, progress);
 
         recoveryWindowGrid = new GridPane();
         recoveryWindowGrid.setHgap(8);
@@ -1003,6 +1140,7 @@ public class HelloController {
         makeWindowDraggable(recoveryStage, header);
         MainApp.installResizeHandles(recoveryStage, scene);
         recoveryStage.setOnHidden(e -> {
+            saveRecoveryState();
             recoveryWindowGrid = null;
             recoveryWinButton = null;
             recoveryLossButton = null;
@@ -1016,16 +1154,14 @@ public class HelloController {
         label.setWrapText(true);
     }
     private void updateRecoveryUI() {
-        double remaining = Math.max(0, recoveryPit.getTotalBoxes() * recoveryPit.getBoxTarget()
-                - recoveryPit.getTotalRecovered());
+        double remaining = recoveryPit.getRemainingDrawdown();
         if (remaining > 0) {
             lblRecoveryLoss.setText(String.format(
-                    "Loss: £%.2f · %d x boxes, £%.2f each · Remaining: £%.2f",
-                    recoveryPit.getTotalLoss(), recoveryPit.getTotalBoxes(), recoveryPit.getBoxTarget(), remaining));
+                    "Initial drawdown: £%.2f · Remaining: £%.2f · %d active boxes",
+                    recoveryPit.getTotalLoss(), remaining, recoveryPit.getTotalBoxes()));
         } else {
             lblRecoveryLoss.setText(String.format(
-                    "Recovery complete: £0.00 · %d x boxes, £%.2f each",
-                    recoveryPit.getTotalBoxes(), recoveryPit.getBoxTarget()));
+                    "Recovery complete: £0.00 · all boxes cleared"));
         }
 
 
@@ -1033,53 +1169,13 @@ public class HelloController {
                 ? "-fx-text-fill:#e74c3c; -fx-font-weight:bold;"
                 : "-fx-text-fill:#2ecc71; -fx-font-weight:bold;");
 
-        lblBoxProgress.setText(
-                "Box " + recoveryPit.getCurrentBox() +
-                        " / " + recoveryPit.getTotalBoxes()
-        );
-
-        double target = recoveryPit.getBoxTarget();
-
-        GridPane grid = recoveryWindowGrid != null ? recoveryWindowGrid : recoveryGrid;
-        for (Node node : grid.getChildren()) {
-
-            if (!(node instanceof Label box)) continue;
-
-            Integer row = GridPane.getRowIndex(box);
-            Integer col = GridPane.getColumnIndex(box);
-
-            int r = row == null ? 0 : row;
-            int c = col == null ? 0 : col;
-
-            int cols = (int) Math.ceil(Math.sqrt(recoveryPit.getTotalBoxes()));
-            int index = r * cols + c;
-
-            int boxNumber = index + 1;
-
-
-            if (boxNumber < recoveryPit.getCurrentBox()) {
-                box.setText("✓");
-                box.setStyle("-fx-background-color:#2ecc71; -fx-text-fill:black;");
-            }
-
-
-            else if (boxNumber == recoveryPit.getCurrentBox()) {
-
-                double progress = recoveryPit.getCurrentProgress();
-
-                box.setText(String.format("£%.2f / £%.2f", progress, target));
-
-                box.setStyle("-fx-background-color:#f1c40f; -fx-text-fill:black;");
-            }
-
-
-            else {
-                box.setText(String.format("£%.2f", target));
-                box.setStyle("-fx-background-color:#2a2a3a; -fx-text-fill:white;");
-            }
-        }
+        lblBoxProgress.setText(recoveryPit.isComplete()
+                ? "All boxes cleared"
+                : "Active box values are the outstanding liability; wins reduce the first box and clear it once depleted.");
         double stake = getRecoveryStake();
-        lblRecoveryStake.setText(String.format("Stake: £%.2f", stake));
+        synchronizedMainStake = playerSystem.getBaseUnit();
+        lblRecoveryStake.setText(String.format("Recommended stake: £%.2f · Main stake: £%.2f  (cap: £%.2f · points: %.0f)",
+                stake, synchronizedMainStake, recoveryPit.getMaxStake(), recoveryPit.getPointTarget()));
     }
     @FXML
     private void onRecoveryWin() {
@@ -1091,39 +1187,42 @@ public class HelloController {
         recordRecoveryResult(false);
     }
 
-
     private void recordRecoveryResult(boolean win) {
         if (recoveryWinButton == null || recoveryLossButton == null
                 || recoveryWinButton.isDisable() || recoveryLossButton.isDisable()) return;
         showRecoveryActionFeedback(win);
-        runWithLoading(() -> {
-            double before = playerSystem.getBank() + bankerSystem.getBank();
-            playerSystem.setSystemLocked(false); bankerSystem.setSystemLocked(false);
-            boolean bankerTab = tabPane.getSelectionModel().getSelectedIndex() == 1;
-            if (bankerTab) {
-                if (win && trackingMode == TrackingMode.COMBINED) playerSystem.recordCombinedWin(0.95);
-                else if (win) bankerSystem.recordWin();
-                else if (trackingMode == TrackingMode.COMBINED) playerSystem.recordLoss();
-                else bankerSystem.recordLoss();
-            } else if (win) playerSystem.recordWin(); else playerSystem.recordLoss();
-            double change = Math.abs(playerSystem.getBank() + bankerSystem.getBank() - before);
-            if (win) recoveryPit.applyWin(change); else recoveryPit.applyLoss(change);
+        try {
+            double stake = getRecoveryStake();
+            if (win) recoveryPit.applyWin(stake); else recoveryPit.applyLoss(stake);
+
+            // Cash changes hand by hand; the full cleared liability is credited
+            // to profit once recovery has actually completed.
+            BaccaratSystem sys = recoverySystem == null ? playerSystem : recoverySystem;
+            sys.applyDirectBankChange(win ? stake : -stake);
+            saveRecoveryState();
+
+            buildRecoveryGrid(recoveryPit.getTotalBoxes());
             if (recoveryPit.isComplete()) {
+                sys.applyRecoveryProfit(recoveryPit.getTotalRecovered());
+                recoveryActive = false;
+                recoveryFile.delete();
                 systemLockedTriggered = false; stoppedForProfit = false;
+                playerSystem.unlockAndResetStages();
+                bankerSystem.unlockAndResetStages();
+
                 updateRecoveryUI();
-
-
                 PauseTransition closeDelay = new PauseTransition(Duration.millis(450));
-                closeDelay.setOnFinished(e -> {
-                    if (recoveryStage != null) recoveryStage.close();
-                });
+                closeDelay.setOnFinished(e -> { if (recoveryStage != null) recoveryStage.close(); });
                 closeDelay.play();
             } else {
-                playerSystem.setSystemLocked(true); bankerSystem.setSystemLocked(true);
                 updateRecoveryUI();
                 enableRecoveryButtons();
             }
-        });
+        } finally {
+            // Keep the main-window values in sync without delaying the recovery
+            // window's own grid update.
+            updateUI();
+        }
     }
 
     private void showRecoveryActionFeedback(boolean win) {
@@ -1134,14 +1233,20 @@ public class HelloController {
     }
 
     private void enableRecoveryButtons() {
-        if (recoveryWinButton != null) recoveryWinButton.setDisable(false);
-        if (recoveryLossButton != null) recoveryLossButton.setDisable(false);
+        if (recoveryWinButton != null) {
+            recoveryWinButton.setText("WIN");
+            recoveryWinButton.setDisable(false);
+        }
+        if (recoveryLossButton != null) {
+            recoveryLossButton.setText("LOSS");
+            recoveryLossButton.setDisable(false);
+        }
     }
 
     private void updateRecoveryPitButton() {
 
-        boolean playerLocked = playerSystem.isSystemLocked();
-        boolean bankerLocked = bankerSystem.isSystemLocked();
+        boolean playerLocked = playerSystem.isSystemLocked() || recoveryActive;
+        boolean bankerLocked = bankerSystem.isSystemLocked() || recoveryActive;
 
         if (trackingMode == TrackingMode.COMBINED) {
             // In combined mode the player system represents both sides.
@@ -1229,7 +1334,7 @@ public class HelloController {
         TableView<CompoundingDay> table = new TableView<>();
         TableColumn<CompoundingDay, Integer> day = new TableColumn<>("Day");
         TableColumn<CompoundingDay, Double> opening = moneyColumn("Opening (£)", "opening");
-        TableColumn<CompoundingDay, Double> dailyGoal = percentColumn("Daily target (%)", "dailyGoal");
+        TableColumn<CompoundingDay, Double> dailyGoal = percentColumn("Daily needed (£bank)", "dailyGoal");
         TableColumn<CompoundingDay, Double> profit = moneyColumn("Profit / loss (£)", "profitLoss");
         day.setCellValueFactory(new PropertyValueFactory<>("day"));
         day.setMinWidth(55); day.setPrefWidth(65);
@@ -1274,9 +1379,11 @@ public class HelloController {
 
                 CompoundingDay row = getTableView().getItems().get(getIndex());
                 double opening = row.getOpening();
-                double targetBalance = opening * (1 + value / 100.0);
+                double dailyRate = value / 100.0;
+                double dailyAmount = opening * dailyRate;
+                double bankNeeded = opening * (1 + dailyRate);
 
-                setText(String.format("%.2f%% (£%.2f)", value, targetBalance));
+                setText(String.format("£%.2f (£%.2f)", dailyAmount, bankNeeded));
                 setStyle(value > 0 ? "-fx-text-fill:#2ecc71;" : value < 0 ? "-fx-text-fill:#e74c3c;" : "-fx-text-fill:white;");
             }
         });
@@ -1575,17 +1682,17 @@ public class HelloController {
         setLabelColor(lblTotalProfit, totalProfit);
         setLabelColor(lblTotalProfitBank, totalProfit);
 
-        setLabelColor(lblTotalBank, totalProfit);
-        setLabelColor(lblTotalBankBank, totalProfit);
+        setLabelColor(lblTotalBank, totalBank);
+        setLabelColor(lblTotalBankBank, totalBank);
 
         updateSeparatorStyle(sepPlayerProfit, playerSystem.getProfit());
-        updateSeparatorStyle(sepPlayerBank, playerSystem.getProfit());
+        updateSeparatorStyle(sepPlayerBank, playerSystem.getBank());
 
         updateSeparatorStyle(
                 sepBankerProfit,
                 trackingMode == TrackingMode.COMBINED
-                        ? playerSystem.getProfit()
-                        : bankerSystem.getProfit()
+                        ? playerSystem.getBank()
+                        : bankerSystem.getBank()
         );
 
         updateSeparatorStyle(
@@ -1619,7 +1726,7 @@ public class HelloController {
         txtPlayerOutput.setText(msg);
         lblPlayerUnit.setText(String.format("💲%.2f", playerSystem.getBaseUnit()));
         setLabelColor(lblPlayerProfit, playerSystem.getProfit());
-        setLabelColor(lblPlayerBank, playerSystem.getProfit());
+        setLabelColor(lblPlayerBank, playerSystem.getBank());
         int stage = playerSystem.getStageIndex() + 1;
         int bet    = playerSystem.getCurrentBetIndex() + 1;
         lblPlayerStageDetail.setText("     " + stage + " (" + bet + ")");
@@ -1659,7 +1766,7 @@ public class HelloController {
         );
 
         setLabelColor(lblBankerProfit, system.getProfit());
-        setLabelColor(lblBankerBank, system.getProfit());
+        setLabelColor(lblBankerBank, system.getBank());
 
         String msg;
 
